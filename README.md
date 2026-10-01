@@ -2,6 +2,8 @@
 
 https://wintechr-alt.github.io/Descent-LoD-Save-editor-DescentForge/
 
+<img width="3697" height="1774" alt="Screenshot1" src="https://github.com/user-attachments/assets/29b817be-e815-47de-befd-5529f0844a83" />
+
 A browser tool for editing save files from the *Descent: Legends of the Dark* app. This is a fork of
 [Dano1307's Descent-LoD-Save-editor](https://github.com/Dano1307/Descent-LoD-Save-editor), extended to
 work with campaigns made in DescentForge and to cover much more of the save file.
