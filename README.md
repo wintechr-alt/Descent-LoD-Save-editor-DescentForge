@@ -41,9 +41,7 @@ The original project is also hosted at https://dano1307.github.io/Descent-LoD-Sa
 
 ### On your computer
 
-[```bash
-git clone https://github.com/wintechr-alt/Descent-LoD-Save-editor-DescentForge
-```]
+[```bash git clone https://github.com/wintechr-alt/Descent-LoD-Save-editor-DescentForge```]
 
 Open `index.html` in a browser. There's nothing to install or build.
 
