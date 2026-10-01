@@ -36,7 +36,8 @@ Everything runs in your browser. Your save file is read locally and never upload
 
 ### Online
 
-(https://wintechr-alt.github.io/Descent-LoD-Save-editor-DescentForge/)
+https://wintechr-alt.github.io/Descent-LoD-Save-editor-DescentForge/
+
 The original project is also hosted at https://dano1307.github.io/Descent-LoD-Save-editor/.
 
 ### On your computer
