@@ -10,7 +10,7 @@ With this editor you can adjust elements such as:
 - enemy weaknesses & resistances
 
 👉 **Try it directly online:**  
-https://wintech-alt.github.io/Descent-LoD-Save-editor-DescentForge/
+https://wintechr-alt.github.io/Descent-LoD-Save-editor-DescentForge/
 
 ---
 
@@ -27,12 +27,12 @@ You can use the editor in two ways:
 
 ### 1. **No installation (recommended)**
 Use the online version hosted on GitHub Pages:  
-[https://dano1307.github.io/Descent-LoD-Save-editor/](https://wintech-alt.github.io/Descent-LoD-Save-editor-DescentForge
+https://wintechr-alt.github.io/Descent-LoD-Save-editor-DescentForge
 
 ### 2. **Run locally**
 Clone the repository:
 	```bash
-	git clone https://github.com/Wintech-alt/Descent-LoD-Save-editor-DescentForge
+	git clone https://github.com/Wintechr-alt/Descent-LoD-Save-editor-DescentForge
 	```
 Then open the index.html file in your browser (located in the project root).
 
@@ -40,7 +40,7 @@ Then open the index.html file in your browser (located in the project root).
 
 ## How to use
 A quick text guide is available here:
-https://wintech-alt.github.io/Descent-LoD-Save-editor-DescentForge/html/instructions.html
+https://wintechr-alt.github.io/Descent-LoD-Save-editor-DescentForge/html/instructions.html
 
 ---
 
