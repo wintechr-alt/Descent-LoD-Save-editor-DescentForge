@@ -1,28 +1,48 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
     <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Edit Descent: Legends of the Dark save files in your browser: items, recipes, shop, skills, feats and enemy weaknesses, with DescentForge campaign support.">
+        <title>Descent: Legends of the Dark save editor (DescentForge fork)</title>
         <link rel="stylesheet" href="css/dark-theme.css">
         <link rel="stylesheet" href="css/GUI.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
         <script src="script/consts.js"></script>
+        <script src="script/names.js"></script>
+        <script src="script/enemies.js"></script>
+        <script src="script/defaults.js"></script>
         <script src="script/main.js"></script>
         <script src="script/GUI_Builder.js"></script>
         <script src="script/dataManager.js"></script>
+        <script src="script/descentforge.js"></script>
+        <script src="script/i18n.js"></script>
     </head>
 
     <body onload="setup()">
-        <form id="jsonFile" name="jsonFile" enctype="multipart/form-data" method="post">
-            <fieldset>
-                <h2>Select save file</h2>
-                <input type='file' id='fileinput'>
-                <button type="button" id='btnLoad' class="blue-button" onclick='loadFile();'>Load</button>
-            
-                <select id="selLanguage" name="language" class="blue-button" onchange="changeLanguage()">
-                    <option value="eng">English</option>
-                    <option value="ita">Italiano</option>
-                </select>
+        <form id="jsonFile" name="jsonFile" onsubmit="return false">
+            <fieldset id="loader">
+                <div id="loaderBar">
+                    <h2 id="loaderTitle">Open your save file</h2>
+                    <select id="selLanguage" name="language" class="blue-button" onchange="changeLanguage()">
+                        <option value="eng">English</option>
+                        <option value="ita">Italiano</option>
+                        <option value="spa">Español</option>
+                        <option value="fra">Français</option>
+                    </select>
+                </div>
 
-                <br>
+                <label id="dropZone" class="drop-zone" for="fileinput" tabindex="0" role="button">
+                    <span class="drop-icon" aria-hidden="true">&#128194;</span>
+                    <span id="dropTitle" class="drop-title">Choose your save file</span>
+                    <span id="dropSub" class="drop-sub">or drop it here (a .sav file)</span>
+                </label>
+                <input type="file" id="fileinput" class="visually-hidden" accept=".sav">
+                <p id="loadStatus" class="load-status" role="status">No save loaded yet.</p>
+                <p id="loadHint" class="section-note">Save files end in .sav and look like 2026-09-29_20-05-46.sav. The file is read in your browser and never uploaded. Your edited copy is named one second newer, so the game loads it as your latest save. Keep a backup of the original.</p>
+
+                <div id="saveRow">
+                    <button type="button" id="btnSave" class="blue-button" onclick="downloadUpdatedSaveFile()">Get the new save file</button>
+                </div>
                 <a href="html/instructions.html" target="_blank" style="target-new: tab;">(How to use)</a>
             </fieldset>
         </form>
@@ -37,6 +57,9 @@
             <li data-id="HERO_VAERIX">Vaerix</li>
             <li data-id="HERO_KEHLI">Kehli</li>
             <li data-id="HERO_CHANCE">Chance</li>
+            <li data-id="SHOP">Shop</li>
+            <li data-id="SHOP_ITEMS">Shop items</li>
+            <li data-id="ENEMIES">Enemies</li>
         </ul>
 
         
@@ -86,6 +109,148 @@
                             <th>ID</th>
                             <th>BASE</th>
                             <th>UPGRADED</th>
+                        </tr>
+                    </table>
+                </div>
+                <div class="table-container">
+                    <h1>Shared weapons</h1>
+                    <p class="section-note">Weapons any hero can use. Owned gives parts A, B and C; upgraded upgrades part A.</p>
+                    <table id="sharedWeapons">
+                        <tr>
+                            <th>WEAPON</th>
+                            <th>OWNED</th>
+                            <th>UPGRADED</th>
+                        </tr>
+                    </table>
+                </div>
+                <div class="table-container misc-container">
+                    <h1>Misc</h1>
+                    <p class="section-note">Puts back any missing "no part" options, marks the recipes crafted for items you own, removes duplicate items, recipes and list entries, combines repeated material and shop stacks, keeps only the upgraded version when both are owned, and drops recipes the original editor wrote for bought items. You'll see the full list before anything changes.</p>
+                    <p id="cleanupHint" class="section-note cleanup-hint"></p>
+                    <button type="button" class="blue-button" onclick="runCleanup()">Clean up duplicates</button>
+                    <p id="cleanupStatus" class="section-note cleanup-status" role="status"></p>
+                    <ul id="cleanupDetails" class="section-note"></ul>
+
+                    <h2>Reset to default</h2>
+                    <p class="section-note">Puts items, recipes, materials, gold, the shop, skills, feats and every hero's gear back to how a new Act 1 campaign starts. Story progress, party name, XP and anything else are kept.</p>
+                    <button type="button" class="blue-button" onclick="resetToDefault()">Reset to default</button>
+                    <p id="resetStatus" class="section-note" role="status"></p>
+                </div>
+                <div class="table-container" id="otherItemsContainer" style="display:none">
+                    <h1>Other items</h1>
+                    <p class="section-note">Items from this campaign that don't fit the tables above.</p>
+                    <table id="otherItems">
+                        <tr>
+                            <th>ID</th>
+                            <th>OWNED</th>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div id="shopData">
+                <div class="table-container">
+                    <h1>Materials for sale</h1>
+                    <p class="section-note">The crafting materials and elements the shop sells. 0 means not for sale.</p>
+                    <p id="shopMaterialCount" class="section-note"></p>
+                    <table id="shopStock">
+                        <tr>
+                            <th>MATERIAL</th>
+                            <th>QUANTITY</th>
+                        </tr>
+                    </table>
+                </div>
+                <div class="shop-side">
+                <div class="table-container shop-controls">
+                    <h1>Shop</h1>
+                    <label for="shopExtraSlots">Extra shop slots</label>
+                    <input type="number" id="shopExtraSlots" class="quantity-input" min="0" max="99">
+                    <p id="shopExtraSlotsNote" class="section-note"></p>
+
+                    <p class="section-note">The shop normally restocks after each quest, which replaces this list.</p>
+                </div>
+                <div class="table-container" id="shopNowBox">
+                    <h1>Items &amp; recipes for sale now</h1>
+                    <p class="section-note">Only one of each is sold. Untick one to take it off the shelves. Add more on the Shop items tab.</p>
+                    <p id="shopNowCount" class="section-note"></p>
+                    <p id="shopNowEmpty" class="section-note">Nothing for sale yet. Add some on the Shop items tab.</p>
+                    <table id="shopNow">
+                        <tr>
+                            <th>ITEM OR RECIPE</th>
+                            <th>FOR SALE</th>
+                        </tr>
+                    </table>
+                </div>
+                </div>
+            </div>
+
+            <div id="shopItemsData">
+                <div class="table-container shop-items-help">
+                    <h1>Items &amp; recipes for sale</h1>
+                    <p class="section-note">Each is sold once. Items you own and recipes you know can't be added, so buying can't make a duplicate.</p>
+                    <p class="section-note">Only what you can still add is listed: items you own and recipes you know are left out. Weapons are grouped by hero, with each weapon's part A, part B and part C like the hero pages.</p>
+                    <div class="bulk-bar">
+                        <button type="button" class="blue-button" onclick="stockEverything()">Add everything you don't own yet</button>
+                        <button type="button" class="blue-button" onclick="clearShopItems()">Clear all</button>
+                    </div>
+                    <p class="section-note">"Add everything" puts every item and recipe listed below on sale (Act 2 ones only when the campaign allows them). That can be a few hundred entries, which hasn't been tried in the game, so try it on a copy of your save first. "Clear all" takes them all off again.</p>
+                    <p id="shopItemCount" class="section-note"></p>
+                    <p id="shopItemMessage" class="section-note" role="status"></p>
+                </div>
+                <div id="shopCategories"></div>
+            </div>
+
+            <div id="enemiesData">
+                <div class="table-container enemy-help">
+                    <h1>Enemy weaknesses</h1>
+                    <p class="section-note">The game reveals an enemy's weaknesses and resistances one at a time. An enemy is Known when every one is revealed, Incomplete when some are still hidden, and Not known when the party hasn't met it. Tick the box to reveal everything about an enemy.</p>
+                    <ul class="section-note">
+                        <li>Revealed weaknesses and resistances show their name. A hidden one shows as Unknown, like in the game, and the last column says what it is, from DescentForge's enemy list, so you can check it against the game.</li>
+                        <li>Each enemy shows the number the save stores for it ("flags"). One part of that number (bit 0) isn't understood and is ignored; it's set whenever an enemy is made known.</li>
+                        <li>In Incomplete, Forget makes the enemy unknown again. Unticking a known enemy forgets it too.</li>
+                        <li>The weaknesses and resistances come from DescentForge's enemy list. Enemies in a save that aren't on that list are never changed.</li>
+                    </ul>
+                    <p id="enemyCount" class="section-note"></p>
+                    <div class="bulk-bar">
+                        <button type="button" class="blue-button" onclick="setEnemyStatus(revealEnemies())">Make all known</button>
+                        <button type="button" class="blue-button" onclick="setEnemyStatus(clearEnemies())">Clear all</button>
+                        <span id="enemyStatus" class="bulk-status" role="status"></span>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <h1 id="enemiesKnownTitle">Known</h1>
+                    <table id="enemiesKnown">
+                        <tr>
+                            <th>ENEMY</th>
+                            <th>KNOWN</th>
+                            <th>WEAKNESSES</th>
+                            <th>RESISTANCES</th>
+                        </tr>
+                    </table>
+                </div>
+                <div class="table-container" id="enemiesIncompleteBox">
+                    <h1 id="enemiesIncompleteTitle">Incomplete</h1>
+                    <p class="section-note">Some weaknesses or resistances are still hidden. Tick the box to reveal the rest.</p>
+                    <table id="enemiesIncomplete">
+                        <tr>
+                            <th>ENEMY</th>
+                            <th>KNOWN</th>
+                            <th>WEAKNESSES</th>
+                            <th>RESISTANCES</th>
+                            <th title="The weaknesses and resistances that are still hidden, from DescentForge's enemy list">WHAT'S MISSING</th>
+                            <th></th>
+                        </tr>
+                    </table>
+                </div>
+                <div class="table-container">
+                    <h1 id="enemiesUnknownTitle">Not known</h1>
+                    <table id="enemiesUnknown">
+                        <tr>
+                            <th>ENEMY</th>
+                            <th>KNOWN</th>
+                            <th>WEAKNESSES</th>
+                            <th>RESISTANCES</th>
+                            <th title="From DescentForge's enemy list. The save doesn't reveal these for an enemy that isn't known.">WHAT THEY ARE</th>
                         </tr>
                     </table>
                 </div>
@@ -284,7 +449,5 @@
             </div>
         </div>
 
-        <br>
-        <button type="button" id="btnSave" class="blue-button" onclick="downloadUpdatedSaveFile()">Get the new save file</button>
     </body>
 </html>
