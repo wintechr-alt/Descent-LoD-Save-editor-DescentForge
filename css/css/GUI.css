@@ -1,0 +1,620 @@
+/*============================AGGIUNTE============================*/
+table{
+	border-collapse: collapse;
+}
+
+th{
+	background-color: #015a91;
+	color: #e6e6e6;
+	padding: 5px 10px;
+}
+
+table, tr, td, th{
+	border: 1px #D8D8D8 solid;
+}
+
+td{
+	padding: 5px;
+}
+
+input[type="checkbox"]{
+	width: 1.5em;
+	height: 1.5em;
+}
+
+
+#brynnData, #syrusData, #galadenData, #vaerixData, #kehliData, #chanceData{
+	margin-top: 10px;
+	margin-bottom: 10px;
+	display: none;
+	flex-flow: wrap;
+	align-items: flex-start;
+}
+
+#brynnTitle, #syrusTitle, #galadenTitle, #vaerixTitle, #kehliTitle, #chanceTitle{
+	display: none;
+	margin-bottom: 0px;
+}
+
+#shopData{
+	margin-top: 10px;
+	margin-bottom: 10px;
+	display: none;
+	flex-flow: wrap;
+	align-items: flex-start;
+}
+
+#shopItemsData{
+	margin-top: 10px;
+	margin-bottom: 10px;
+	display: none;
+	flex-flow: column;
+	align-items: flex-start;
+}
+
+#commonData{
+	margin-top: 10px;
+	margin-bottom: 10px;
+	display: flex;
+  flex-flow: wrap;
+}
+
+.table-container{
+	display: inline-block;
+	padding: 5px;
+	margin-left: auto;
+    margin-right: auto;
+}
+
+.quantity-input-container,
+.checkbox-container{
+	text-align: center;
+}
+
+.quantity-input{
+    max-width: 70px;
+    text-align: center;
+    padding: 5;
+
+}
+
+.item-image{
+	max-width: 110px;
+}
+
+.item-text-image{
+	max-width: 400px;
+}
+
+#navigationBar {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #333333;
+  position: sticky;
+  top: 0px;
+}
+
+#navigationBar li {
+  float: left;
+  font-size: 20px;
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+#navigationBar li:hover {
+  background-color: #111111;
+  cursor: pointer;
+}
+
+#selLanguage{
+	float:right;
+}
+
+
+/* Button CSS */
+.blue-button {
+  background-color: #0170b5;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  box-shadow: rgba(255, 255, 255, .4) 0 1px 0 0 inset;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-family: -apple-system,system-ui,"Segoe UI","Liberation Sans",sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.15385;
+  margin: 0;
+  outline: none;
+  padding: 8px .8em;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+
+.blue-button:hover,
+.button-7:focus {
+  background-color: #015a91;
+}
+
+.blue-button:focus {
+  box-shadow: 0 0 0 4px rgba(0, 149, 255, .15);
+}
+
+.blue-button:active {
+  background-color: #015a91;
+  box-shadow: none;
+}
+
+
+/* DescentForge additions */
+.item-id-label{
+	font-family: Consolas, "Courier New", monospace;
+	font-size: 14px;
+	color: #e6e6e6;
+}
+
+.section-note{
+	font-size: 14px;
+	max-width: 420px;
+	margin: 4px 0;
+}
+
+.shop-controls label{
+	margin-right: 8px;
+}
+
+#shopStock td:first-child,
+#recipes td:first-child{
+	font-family: Consolas, "Courier New", monospace;
+	font-size: 14px;
+	color: #e6e6e6;
+}
+
+#navigationBar li:focus-visible,
+button:focus-visible,
+input:focus-visible{
+	outline: 2px solid #3ba0e6;
+	outline-offset: 2px;
+}
+
+.bulk-bar{
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	margin: 4px 0 8px;
+}
+
+.bulk-status{
+	flex: 0 0 100%;
+	font-size: 14px;
+	margin: 2px 0 4px;
+}
+
+.bulk-status:empty{
+	display: none;
+}
+
+#actControls{
+	margin: 6px 8px 10px;
+}
+
+#act2Warning{
+	margin-top: 6px;
+	padding: 8px;
+	border: 1px solid #d9822b;
+	color: #f0b36e;
+}
+
+.act-badge{
+	display: inline-block;
+	margin-left: 6px;
+	padding: 0 5px;
+	font-size: 11px;
+	border: 1px solid #d9822b;
+	border-radius: 3px;
+	color: #f0b36e;
+	vertical-align: middle;
+}
+
+.act2-row input[type=checkbox]:disabled{
+	opacity: 0.35;
+}
+
+#everythingBar{
+	margin: 6px 8px 10px;
+}
+
+#everythingBar .blue-button{
+	font-weight: bold;
+}
+
+input.included-in-upgrade:disabled{
+	opacity: 0.45;
+}
+
+.item-label{
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	text-align: left;
+}
+
+.item-label-text{
+	display: flex;
+	flex-direction: column;
+}
+
+.item-name{
+	font-size: 15px;
+	color: #f2f2f2;
+}
+
+.item-label .item-id-label{
+	font-size: 11px;
+	color: #a9a9a9;
+}
+
+tr.act-divider td{
+	padding: 6px 8px;
+	text-align: left;
+	font-weight: bold;
+	color: #f0b36e;
+	border-top: 2px solid #d9822b;
+}
+
+#everythingBar .reset-button{
+	margin-left: 12px;
+	background-color: #8a3a2e;
+	border-color: #8a3a2e;
+}
+
+#saveRow{
+	margin: 8px 0 6px;
+}
+
+tr.shop-divider td{
+	padding: 6px 8px;
+	text-align: left;
+	font-weight: bold;
+	color: #a9a9a9;
+	border-top: 2px solid #6b6b6b;
+}
+
+#shopCategories{
+	display: flex;
+	flex-flow: wrap;
+	align-items: flex-start;
+}
+
+#shopCategories [hidden]{
+	display: none;
+}
+
+.shop-items-help{
+	max-width: 620px;
+}
+
+
+#shopData > .table-container,
+#shopItemsData > .table-container{
+	margin-left: 20px;
+	margin-right: 0;
+}
+
+.weapon-cards{
+	display: flex;
+	flex-flow: wrap;
+	align-items: flex-start;
+}
+
+.weapon-cards .table-container{
+	margin-left: 0;
+	margin-right: 16px;
+}
+
+h3.weapon-name{
+	font-size: 22px;
+	margin: 8px 0 4px;
+}
+
+tr.part-divider td{
+	padding: 6px 8px;
+	text-align: left;
+	font-weight: bold;
+	color: #d0d0d0;
+	background-color: #2e2e2e;
+	border-top: 2px solid #6b6b6b;
+}
+
+#enemiesData{
+	margin-top: 10px;
+	margin-bottom: 10px;
+	display: none;
+	flex-flow: column;
+	align-items: flex-start;
+}
+
+.enemy-help{
+	max-width: 980px;
+}
+
+.vuln-tag{
+	display: inline-block;
+	margin: 2px 6px 2px 0;
+	padding: 1px 8px;
+	border: 1px solid #6b6b6b;
+	border-radius: 3px;
+	white-space: nowrap;
+}
+
+.vuln-tag.weak{
+	color: #a8dba8;
+	border-color: #5d8f5d;
+}
+
+.vuln-tag.resist{
+	color: #e8b4b4;
+	border-color: #9a5d5d;
+}
+
+#enemiesKnown td,
+#enemiesIncomplete td,
+#enemiesUnknown td{
+	text-align: left;
+}
+
+.vuln-tag.missing{
+	border-style: dashed;
+	opacity: 0.7;
+}
+
+.enemy-flags{
+	display: block;
+	font-size: 12px;
+	color: #8f8f8f;
+}
+
+.vuln-tag.unknown{
+	color: #b9b9b9;
+	border-color: #6b6b6b;
+}
+
+.enemy-actual div{
+	white-space: nowrap;
+	margin: 2px 0;
+}
+
+.shop-hero-group{
+	flex: 0 0 100%;
+	margin: 6px 0 0 20px;
+}
+
+.shop-hero-group > h2{
+	margin: 10px 0 0;
+}
+
+/* Hero pages: skills and feats go below the weapons */
+#brynnData > .table-container:first-child,
+#syrusData > .table-container:first-child,
+#galadenData > .table-container:first-child,
+#vaerixData > .table-container:first-child,
+#kehliData > .table-container:first-child,
+#chanceData > .table-container:first-child{
+	flex: 0 0 100%;
+}
+
+/* Hide all Act 2 content */
+body.hide-act2 tr.act2-row,
+body.hide-act2 tr.act-divider{
+	display: none;
+}
+
+#actControls label{
+	margin-right: 18px;
+}
+
+#btnSave{
+	background-color: #2e9e4f;
+	border-color: #2e9e4f;
+	color: #ffffff;
+	font-weight: bold;
+}
+
+#btnSave:hover{
+	background-color: #37b85c;
+	border-color: #37b85c;
+}
+
+#everythingBar .bulk-bar{
+	margin: 0 0 6px;
+}
+
+#topWarnings{
+	margin-top: 4px;
+}
+
+.enemy-partial{
+	display: block;
+	font-size: 12px;
+	color: #f0b36e;
+}
+
+#enemiesIncompleteBox[hidden]{
+	display: none;
+}
+
+/* Enemies tab: everything lines up on the left, and the columns line up from table to table */
+#enemiesData > .table-container{
+	margin: 0 0 6px 20px;
+	align-self: flex-start;
+}
+
+#enemiesKnown,
+#enemiesIncomplete,
+#enemiesUnknown{
+	table-layout: fixed;
+}
+
+#enemiesKnown{ width: 860px; }
+#enemiesUnknown{ width: 1090px; }
+#enemiesIncomplete{ width: 1180px; }
+
+#enemiesKnown th:nth-child(1),
+#enemiesIncomplete th:nth-child(1),
+#enemiesUnknown th:nth-child(1){ width: 260px; }
+
+#enemiesKnown th:nth-child(2),
+#enemiesIncomplete th:nth-child(2),
+#enemiesUnknown th:nth-child(2){ width: 80px; }
+
+#enemiesKnown th:nth-child(3),
+#enemiesIncomplete th:nth-child(3),
+#enemiesUnknown th:nth-child(3){ width: 300px; }
+
+#enemiesKnown th:nth-child(4),
+#enemiesIncomplete th:nth-child(4),
+#enemiesUnknown th:nth-child(4){ width: 220px; }
+
+#enemiesIncomplete th:nth-child(5),
+#enemiesUnknown th:nth-child(5){ width: 230px; }
+
+#enemiesIncomplete th:nth-child(6){ width: 90px; }
+
+#enemiesKnown td,
+#enemiesIncomplete td,
+#enemiesUnknown td{
+	overflow-wrap: anywhere;
+}
+
+.enemy-help .section-note{
+	max-width: 960px;
+}
+
+/* Shop tab: extra slots on top, what's for sale now below them, to the right of the materials */
+.shop-side{
+	display: flex;
+	flex-flow: column;
+	align-items: flex-start;
+}
+
+.shop-side > .table-container{
+	margin: 0 0 6px 20px;
+}
+
+/* The file box */
+#jsonFile fieldset{
+	border: 2px solid #5a5a5a;
+	border-radius: 8px;
+	margin: 8px;
+	padding: 10px 16px 12px;
+}
+
+#loaderBar{
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+#loaderBar h2{
+	margin: 0;
+}
+
+.drop-zone{
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	margin: 12px 0 8px;
+	padding: 28px 16px;
+	border: 3px dashed #3ba0e6;
+	border-radius: 12px;
+	background: #1d2b36;
+	color: #ffffff;
+	cursor: pointer;
+	text-align: center;
+}
+
+.drop-zone:hover,
+.drop-zone:focus-visible,
+.drop-zone.dragover{
+	background: #24394a;
+	border-color: #6cc1ff;
+	outline: none;
+}
+
+.drop-zone.dragover{
+	border-style: solid;
+}
+
+.drop-icon{
+	font-size: 40px;
+	line-height: 1.1;
+}
+
+.drop-title{
+	font-size: 24px;
+	font-weight: bold;
+}
+
+.drop-sub{
+	font-size: 15px;
+	color: #b9c7d3;
+}
+
+.load-status{
+	margin: 6px 0 2px;
+	font-weight: bold;
+}
+
+#loadHint{
+	max-width: 820px;
+	margin: 2px 0 8px;
+}
+
+.visually-hidden{
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+/* Once a save is loaded, the file box shrinks to a bar */
+body.has-save .drop-zone{
+	flex-direction: row;
+	gap: 10px;
+	margin: 8px 0 4px;
+	padding: 8px 16px;
+	border-width: 2px;
+}
+
+body.has-save .drop-icon{ font-size: 22px; }
+body.has-save .drop-title{ font-size: 16px; }
+body.has-save .drop-sub{ font-size: 14px; }
+body.has-save #loadHint{ display: none; }
+
+/* Nothing else does anything until a save is loaded */
+body:not(.has-save) #partyName,
+body:not(.has-save) #actControls,
+body:not(.has-save) #everythingBar,
+body:not(.has-save) #navigationBar,
+body:not(.has-save) #saveData,
+body:not(.has-save) #saveRow{
+	display: none;
+}
