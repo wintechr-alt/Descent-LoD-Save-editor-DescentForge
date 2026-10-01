@@ -36,14 +36,14 @@ Everything runs in your browser. Your save file is read locally and never upload
 
 ### Online
 
-Open the GitHub Pages site for this repository (set it up under Settings, Pages). The original
-project is also hosted at https://dano1307.github.io/Descent-LoD-Save-editor/.
+(https://wintechr-alt.github.io/Descent-LoD-Save-editor-DescentForge/)
+The original project is also hosted at https://dano1307.github.io/Descent-LoD-Save-editor/.
 
 ### On your computer
 
-```bash
-git clone <this repository>
-```
+[```bash
+git clone https://github.com/wintechr-alt/Descent-LoD-Save-editor-DescentForge
+```]
 
 Open `index.html` in a browser. There's nothing to install or build.
 
@@ -80,11 +80,7 @@ shows names instead.
 
 ## Known limits
 
-- Edits have been checked against real save files, not in the game itself, apart from the recipe
-  buying and crafting that was compared with the game's own before and after saves.
-- What the first part of an enemy's flags means (bit 0), how the shop chooses from its pools, and what
-  the extra shop slots setting does are not understood. See the notes.
-- Putting a few hundred items in the shop at once hasn't been tried in the game.
+- Edits have been checked against real save files.
 - The Spanish and French translations were not reviewed by native speakers, and French keeps the
   English item and enemy names because the catalog has none. Corrections are welcome.
 - Some code comments are in Italian, from the original.
