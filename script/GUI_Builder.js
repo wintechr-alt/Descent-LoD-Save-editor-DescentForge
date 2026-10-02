@@ -515,8 +515,8 @@ function itemToggle(event){
 function getItemImage(itemId, itemType){
     // Picture if there is one, plus the item's names (see itemLabel in descentforge.js)
     let src = (itemType == SKILL_TYPE || itemType == FEAT_TYPE)
-        ? "img/"+itemType+"/"+imageLanguage()+"/"+itemId+".png"
-        : "img/"+itemType+"/"+itemId+".png";
+        ? "img/"+itemType+"/"+imageLanguage()+"/"+itemId+"."+IMAGE_EXTENSION
+        : "img/"+itemType+"/"+itemId+"."+IMAGE_EXTENSION;
     let imgClass;
     switch(itemType){
         case CSM_TYPE:

@@ -246,7 +246,7 @@ function shopPicture(id) {
     else if (item.includes("TRINKET")) type = TRINKET_TYPE;
     else if (item.startsWith("CSM_")) type = CSM_TYPE;
     else if (item.startsWith("WEAPON_PART_")) type = WEAPON_TYPE;
-    return type ? "img/" + type + "/" + item + ".png" : null;
+    return type ? "img/" + type + "/" + item + "." + IMAGE_EXTENSION : null;
 }
 
 function shopItemRow(id) {
@@ -1041,6 +1041,7 @@ function applyActRules() {
 
     greyOutUpgradedBases();
     groupRowsByAct();
+    applyEnemyFilter();
     refreshEnemyCount();
     refreshCleanupHint();
 
@@ -1807,7 +1808,7 @@ function revealEnemies() {
         if (!enemyProgress(e).full) { setEnemyKnown(e, true); changed++; }
     });
     buildCompleteGUI();
-    let text = changed ? "Made " + changed + " enemies known." : "Every enemy is already known.";
+    let text = changed ? "Revealed " + changed + " enemies." : "Every enemy is already revealed.";
     if (skipped) text += act2Hidden ? " Skipped " + skipped + " hidden Act 2 enemies."
                                     : " Skipped " + skipped + " Act 2 enemies this campaign doesn't allow.";
     return text;
@@ -1823,7 +1824,7 @@ function clearEnemies() {
     const removed = list.length - kept.length;
     gameState().DiscoveredEnemyVulnerabilities = kept;
     buildCompleteGUI();
-    return "Cleared " + removed + " enemies.";
+    return "Forgot " + removed + " enemies.";
 }
 
 function setEnemyStatus(text) {
@@ -1834,16 +1835,11 @@ function setEnemyStatus(text) {
 function refreshEnemyCount() {
     const el = document.getElementById("enemyCount");
     if (!el || !completeSave) return;
-    let full = 0, partial = 0;
-    ENEMIES.forEach(e => {
-        const p = enemyProgress(e);
-        if (p.full) full++; else if (p.seen) partial++;
-    });
+    const listed = listedEnemies();
+    const full = listed.filter(e => enemyProgress(e).full).length;
     const known = knownEnemyHashes();
-    const list = discoveredList();
-    const other = list.filter(x => !known.has(x.EnemyIdHash)).length;
-    el.textContent = full + " of " + ENEMIES.length + " enemies completely known" +
-        (partial ? ", " + partial + " incomplete" : "") + "." +
+    const other = discoveredList().filter(x => !known.has(x.EnemyIdHash)).length;
+    el.textContent = full + " of " + listed.length + " enemies fully revealed." +
         (other ? " " + other + " other " + (other === 1 ? "entry isn't" : "entries aren't") + " on DescentForge's list and " + (other === 1 ? "is" : "are") + " left alone." : "");
 }
 
@@ -2121,114 +2117,75 @@ function enemyLabel(e, progress) {
         flags.title = "The number the save stores for this enemy";
         flags.textContent = "flags " + progress.entry.VulnerabilityFlags;
         text.appendChild(flags);
-        if (!progress.full) {
-            const partial = document.createElement("span");
-            partial.className = "enemy-partial";
-            partial.textContent = progress.revealed + " of " + progress.total + " revealed";
-            text.appendChild(partial);
-        }
     }
     wrap.appendChild(text);
     return wrap;
 }
 
-// Tags for one column: a revealed one shows its name, a hidden one shows "Unknown"
+// Tags for one column: solid for a revealed weakness or resistance, dashed for one still hidden
 function enemyTags(e, kind, progress) {
     const td = document.createElement("td");
     e.wr.forEach((tag, index) => {
         if (!tag.endsWith(":" + kind)) return;
+        const revealed = enemyRevealed(progress.entry, index);
         const span = document.createElement("span");
-        if (enemyRevealed(progress.entry, index)) {
-            span.className = "vuln-tag " + (kind === "W" ? "weak" : "resist");
-            span.textContent = tag.split(":")[0];
-        } else {
-            span.className = "vuln-tag unknown missing";
-            span.textContent = "Unknown";
-        }
+        span.className = "vuln-tag " + (kind === "W" ? "weak" : "resist") + (revealed ? "" : " missing");
+        span.title = revealed ? "Revealed" : "Not revealed yet";
+        span.textContent = tag.split(":")[0];
         td.appendChild(span);
     });
     return td;
 }
 
-// What the hidden weaknesses and resistances really are, from DescentForge's enemy list
-function enemyHidden(e, progress) {
-    const td = document.createElement("td");
-    td.className = "enemy-actual";
-    const names = kind => e.wr.map((tag, i) => [tag, i])
-        .filter(([tag, i]) => tag.endsWith(":" + kind) && !enemyRevealed(progress.entry, i))
-        .map(([tag]) => tag.split(":")[0]);
-    const weak = names("W"), resist = names("R");
-    [["Weak to", weak], ["Resists", resist]].forEach(([label, list]) => {
-        if (!list.length) return;
-        const line = document.createElement("div");
-        line.textContent = label + ": " + list.join(", ");
-        td.appendChild(line);
-    });
-    if (!weak.length && !resist.length) td.textContent = "Nothing listed";
-    return td;
-}
-
-// mode: "known", "incomplete" or "unknown"
-function enemyRow(e, mode) {
+function enemyRow(e) {
     const progress = enemyProgress(e);
     const tr = document.createElement("tr");
+    tr.dataset.search = (e.en + " " + e.es + " " + e.id).toLowerCase();
 
     const tdName = document.createElement("td");
     tdName.appendChild(enemyLabel(e, progress));
     tr.appendChild(tdName);
 
-    const tdKnown = document.createElement("td");
-    tdKnown.classList.add("checkbox-container");
+    const tdRevealed = document.createElement("td");
+    tdRevealed.classList.add("checkbox-container");
     const cb = document.createElement("input");
     cb.type = "checkbox";
     cb.dataset.enemyId = e.id;
     cb.checked = progress.full;
-    cb.setAttribute("aria-label", e.en + " known");
+    cb.setAttribute("aria-label", e.en + " revealed");
     cb.onchange = () => {
         setEnemyKnown(e, cb.checked);
         buildCompleteGUI();
     };
-    tdKnown.appendChild(cb);
-    tr.appendChild(tdKnown);
+    tdRevealed.appendChild(cb);
+    tr.appendChild(tdRevealed);
 
     tr.appendChild(enemyTags(e, "W", progress));
     tr.appendChild(enemyTags(e, "R", progress));
-    if (mode !== "known") tr.appendChild(enemyHidden(e, progress));
-
-    if (mode === "incomplete") {
-        const tdForget = document.createElement("td");
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "blue-button";
-        btn.textContent = "Forget";
-        btn.setAttribute("aria-label", "Forget " + e.en);
-        btn.onclick = () => {
-            setEnemyKnown(e, false);
-            buildCompleteGUI();
-        };
-        tdForget.appendChild(btn);
-        tr.appendChild(tdForget);
-    }
     return tr;
 }
 
+// The enemies the tab lists: all of them, or only Act 1 ones while Act 2 content is hidden
+function listedEnemies() {
+    return ENEMIES.filter(e => !(act2Hidden && e.act === 2));
+}
+
 function buildEnemyGUI() {
-    const knownTable = document.getElementById("enemiesKnown");
-    const incompleteTable = document.getElementById("enemiesIncomplete");
-    const unknownTable = document.getElementById("enemiesUnknown");
-    if (!knownTable || !incompleteTable || !unknownTable || !completeSave) return;
-    const list = ENEMIES.slice().sort((a, b) => a.en.localeCompare(b.en) || a.id.localeCompare(b.id));
-    const known = [], incomplete = [], unknown = [];
-    list.forEach(e => {
-        const p = enemyProgress(e);
-        (p.full ? known : p.seen ? incomplete : unknown).push(e);
-    });
-    buildTable(knownTable, known, e => enemyRow(e, "known"));
-    buildTable(incompleteTable, incomplete, e => enemyRow(e, "incomplete"));
-    buildTable(unknownTable, unknown, e => enemyRow(e, "unknown"));
-    document.getElementById("enemiesKnownTitle").textContent = "Known (" + known.length + ")";
-    document.getElementById("enemiesIncompleteTitle").textContent = "Incomplete (" + incomplete.length + ")";
-    document.getElementById("enemiesUnknownTitle").textContent = "Not known (" + unknown.length + ")";
-    document.getElementById("enemiesIncompleteBox").hidden = incomplete.length === 0;
+    const table = document.getElementById("enemiesAll");
+    if (!table || !completeSave) return;
+    const list = listedEnemies().sort((a, b) => a.en.localeCompare(b.en) || a.id.localeCompare(b.id));
+    buildTable(table, list, enemyRow);
     refreshEnemyCount();
+}
+
+// The search box: show only the enemies whose name or ID contains what was typed
+function applyEnemyFilter() {
+    const box = document.getElementById("enemySearch");
+    const table = document.getElementById("enemiesAll");
+    if (!box || !table) return;
+    const query = box.value.trim().toLowerCase();
+    [...table.querySelectorAll("tr")].slice(1).forEach(tr => {
+        if (tr.classList.contains("act-divider")) tr.hidden = !!query;
+        else if (tr.dataset.search !== undefined) tr.hidden = !!query && !tr.dataset.search.includes(query);
+    });
 }

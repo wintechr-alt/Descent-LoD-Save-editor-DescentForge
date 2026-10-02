@@ -16,6 +16,10 @@ const TRINKET_TYPE = "TRINKET"
 const CSM_TYPE = "CSM"
 const CRAFTING_MATERIAL_TYPE = "CRAFTING_MATERIAL"
 
+// Pictures are img/<TYPE>/<ID>.png (skills and feats: img/<TYPE>/<language>/<ID>.png).
+// If your pictures use another extension, change it here.
+const IMAGE_EXTENSION = "png"
+
 /**
  * Lamdba function for defining items array.
  * @param {*} prefix 

@@ -109,6 +109,18 @@ Act 1 and Act 2 saves.
   that are fully revealed, and is often clear on bosses and named enemies. It gets set during play for some enemies.
   The editor ignores it and sets it whenever it makes an enemy known.
 - After a whole game only 3 of 104 entries had everything revealed.
+- Setting every bit (bit 0 and one bit per entry, which is what "Reveal all" does) was checked in the
+  game on a new, non-DescentForge Act 2 campaign: the enemies showed their weaknesses. In that
+  screenshot the enemy bar showed 3 icons for an enemy DescentForge lists with 3 weaknesses and 1
+  resistance, 3 again for another with 3 weaknesses and 1 resistance, and 2 for one with 2
+  weaknesses and 1 resistance. So only the weaknesses showed as icons, even with the resistance bit
+  set. **Unsure** whether resistances show anywhere else, or are used by the game at all.
+- Two enemies were checked in the game against a save with flags 3 and 7: the Intro Boss (flags 3)
+  showed only its Slash weakness, and the Bandit (flags 7) showed Pierce and Anemos with no
+  resistance. That fits bit *n* being the *n*th entry, weaknesses first, with resistances not shown.
+- In DescentForge's list every Act 1 enemy that has a resistance has exactly one, always physical
+  (Slash, Pierce or Crush). Act 2 enemies have up to three, and some are elemental. Pierce
+  resistances on Act 1 enemies were never revealed in any of four saves.
 
 ## Things that are still open
 

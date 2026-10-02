@@ -203,54 +203,26 @@
             <div id="enemiesData">
                 <div class="table-container enemy-help">
                     <h1>Enemy weaknesses</h1>
-                    <p class="section-note">The game reveals an enemy's weaknesses and resistances one at a time. An enemy is Known when every one is revealed, Incomplete when some are still hidden, and Not known when the party hasn't met it. Tick the box to reveal everything about an enemy.</p>
+                    <p class="section-note">Tick an enemy to reveal all its weaknesses and resistances, or untick it to forget it. Solid tags are revealed. Dashed tags are still hidden.</p>
                     <ul class="section-note">
-                        <li>Revealed weaknesses and resistances show their name. A hidden one shows as Unknown, like in the game, and the last column says what it is, from DescentForge's enemy list, so you can check it against the game.</li>
-                        <li>Each enemy shows the number the save stores for it ("flags"). One part of that number (bit 0) isn't understood and is ignored; it's set whenever an enemy is made known.</li>
-                        <li>In Incomplete, Forget makes the enemy unknown again. Unticking a known enemy forgets it too.</li>
+                        <li>The small "flags" number under an enemy is what the save stores for it. One part of that number (bit 0) isn't understood and is ignored; it's set whenever an enemy is revealed.</li>
                         <li>The weaknesses and resistances come from DescentForge's enemy list. Enemies in a save that aren't on that list are never changed.</li>
                     </ul>
                     <p id="enemyCount" class="section-note"></p>
                     <div class="bulk-bar">
-                        <button type="button" class="blue-button" onclick="setEnemyStatus(revealEnemies())">Make all known</button>
-                        <button type="button" class="blue-button" onclick="setEnemyStatus(clearEnemies())">Clear all</button>
+                        <button type="button" class="blue-button" onclick="setEnemyStatus(revealEnemies())">Reveal all</button>
+                        <button type="button" class="blue-button" onclick="setEnemyStatus(clearEnemies())">Forget all</button>
+                        <input type="search" id="enemySearch" class="enemy-search" placeholder="Find an enemy" aria-label="Find an enemy" oninput="applyEnemyFilter()">
                         <span id="enemyStatus" class="bulk-status" role="status"></span>
                     </div>
                 </div>
                 <div class="table-container">
-                    <h1 id="enemiesKnownTitle">Known</h1>
-                    <table id="enemiesKnown">
+                    <table id="enemiesAll">
                         <tr>
                             <th>ENEMY</th>
-                            <th>KNOWN</th>
+                            <th>REVEALED</th>
                             <th>WEAKNESSES</th>
                             <th>RESISTANCES</th>
-                        </tr>
-                    </table>
-                </div>
-                <div class="table-container" id="enemiesIncompleteBox">
-                    <h1 id="enemiesIncompleteTitle">Incomplete</h1>
-                    <p class="section-note">Some weaknesses or resistances are still hidden. Tick the box to reveal the rest.</p>
-                    <table id="enemiesIncomplete">
-                        <tr>
-                            <th>ENEMY</th>
-                            <th>KNOWN</th>
-                            <th>WEAKNESSES</th>
-                            <th>RESISTANCES</th>
-                            <th title="The weaknesses and resistances that are still hidden, from DescentForge's enemy list">WHAT'S MISSING</th>
-                            <th></th>
-                        </tr>
-                    </table>
-                </div>
-                <div class="table-container">
-                    <h1 id="enemiesUnknownTitle">Not known</h1>
-                    <table id="enemiesUnknown">
-                        <tr>
-                            <th>ENEMY</th>
-                            <th>KNOWN</th>
-                            <th>WEAKNESSES</th>
-                            <th>RESISTANCES</th>
-                            <th title="From DescentForge's enemy list. The save doesn't reveal these for an enemy that isn't known.">WHAT THEY ARE</th>
                         </tr>
                     </table>
                 </div>

@@ -67,6 +67,13 @@ function otherName(name) {
             "Hide all Act 2 content": "Ocultar todo el contenido del Acto 2",
             "I want it all": "¡Lo quiero todo!",
             "Reveal enemies": "Revelar enemigos",
+        "Reveal all": "Revelar todo",
+        "Forget all": "Olvidar todo",
+        "REVEALED": "REVELADO",
+        "Find an enemy": "Buscar un enemigo",
+        "Revealed": "Revelado",
+        "Not revealed yet": "Aún no revelado",
+        "Every enemy is already revealed.": "Todos los enemigos ya están revelados.",
             "Reset to default": "Restablecer valores iniciales",
             "All skills": "Todas las habilidades",
             "All feats": "Todas las hazañas",
@@ -95,11 +102,8 @@ function otherName(name) {
             "ITEM OR RECIPE": "OBJETO O RECETA",
             "FOR SALE": "EN VENTA",
             "ENEMY": "ENEMIGO",
-            "KNOWN": "CONOCIDO",
             "WEAKNESSES": "DEBILIDADES",
             "RESISTANCES": "RESISTENCIAS",
-            "WHAT THEY ARE": "QUÉ SON",
-            "WHAT'S MISSING": "LO QUE FALTA",
             "Skill": "Habilidad",
             "Feat": "Hazaña",
             // hero pages
@@ -119,8 +123,6 @@ function otherName(name) {
             "Clear all": "Quitar todo",
             "Complete all": "Completar todo",
             "Set all": "Fijar todos",
-            "Make all known": "Hacer todos conocidos",
-            "Forget": "Olvidar",
             "Add everything you don't own yet": "Añadir todo lo que aún no tienes",
             // shop
             "Shop": "Tienda",
@@ -131,8 +133,6 @@ function otherName(name) {
             "This save doesn't have an extra-slots setting.": "Este guardado no tiene el ajuste de espacios extra.",
             // enemies
             "Enemy weaknesses": "Debilidades de enemigos",
-            "Unknown": "Desconocido",
-            "Nothing listed": "Sin datos",
             "Known": "Conocido",
             "Owned": "Poseído",
             "You already own this": "Ya lo tienes",
@@ -146,7 +146,6 @@ function otherName(name) {
             "No materials for sale.": "No hay materiales en venta.",
             "Everything available is already for sale or owned.": "Todo lo disponible ya está en venta o ya lo tienes.",
             "Everything you can add is already for sale.": "Todo lo que puedes añadir ya está en venta.",
-            "Every enemy is already known.": "Todos los enemigos ya son conocidos.",
             "Clean up this save?": "¿Limpiar este guardado?",
             "Continue?": "¿Continuar?",
             "Please select a file before clicking 'Load'": "Selecciona un archivo antes de pulsar 'Cargar'",
@@ -172,33 +171,23 @@ function otherName(name) {
             // tooltips
             "Included in the upgraded version. Untick the upgrade to go back to the base.":
                 "Incluido en la versión mejorada. Desmarca la mejora para volver a la base.",
-            "From DescentForge's enemy list. The save doesn't reveal these for an enemy that isn't known.":
-                "De la lista de enemigos de DescentForge. El guardado no revela esto para un enemigo que no es conocido.",
             "The number the save stores for this enemy": "El número que guarda el archivo para este enemigo",
-            "The weaknesses and resistances that are still hidden, from DescentForge's enemy list":
-                "Las debilidades y resistencias que siguen ocultas, según la lista de enemigos de DescentForge",
             "Swap it out in the game first, then untick it here.": "Cámbialo primero en el juego y luego desmárcalo aquí.",
             "Swap it out in the game first, then untick the recipe.": "Cámbialo primero en el juego y luego desmarca la receta."
         });
 
         /* ---------- Paragraphs, matched by how they start ---------- */
         const PARAGRAPHS = [
+        ['Tick an enemy to reveal all its weaknesses',
+         'Marca un enemigo para revelar todas sus debilidades y resistencias, o desmárcalo para olvidarlo. Las etiquetas sólidas están reveladas. Las etiquetas con línea discontinua siguen ocultas.'],
+        ['The small "flags" number under an enemy',
+         'El pequeño número "flags" bajo un enemigo es lo que guarda el archivo para él. Una parte de ese número (el bit 0) no se entiende y se ignora; se activa siempre que se revela un enemigo.'],
             ['Save files end in .sav',
              'Los archivos de guardado terminan en .sav y se parecen a 2026-09-29_20-05-46.sav. El archivo se lee en tu navegador y nunca se sube a ningún sitio. Tu copia editada se nombra un segundo más tarde, así que el juego la carga como tu último guardado. Guarda una copia de seguridad del original.'],
             ['Only one of each is sold.',
              'De cada uno se vende solo uno. Desmarca uno para quitarlo de los estantes. Añade más en la pestaña Artículos de la tienda.'],
             ['Nothing for sale yet.',
              'Todavía no hay nada en venta. Añade algo en la pestaña Artículos de la tienda.'],
-            ['The game reveals an enemy\'s weaknesses',
-             'El juego revela las debilidades y resistencias de un enemigo una a una. Un enemigo es Conocido cuando todas están reveladas, Incompleto cuando algunas siguen ocultas y Desconocido cuando el grupo no lo ha encontrado. Marca la casilla para revelar todo sobre un enemigo.'],
-            ['Revealed weaknesses and resistances show their name',
-             'Las debilidades y resistencias reveladas muestran su nombre. Una oculta aparece como Desconocido, como en el juego, y la última columna dice qué es, según la lista de enemigos de DescentForge, para que puedas comprobarla en el juego.'],
-            ['Each enemy shows the number the save stores',
-             'Cada enemigo muestra el número que guarda el archivo para él ("flags"). Una parte de ese número (el bit 0) no se entiende y se ignora; se activa siempre que se hace conocido a un enemigo.'],
-            ['In Incomplete, Forget makes the enemy',
-             'En Incompleto, Olvidar vuelve a hacer desconocido al enemigo. Desmarcar un enemigo conocido también lo olvida.'],
-            ['Some weaknesses or resistances are still hidden.',
-             'Algunas debilidades o resistencias siguen ocultas. Marca la casilla para revelar el resto.'],
             ['"Add everything" puts every item and recipe',
              '"Añadir todo" pone en venta todos los objetos y recetas de la lista de abajo (los del Acto 2 solo cuando la campaña los permite). Pueden ser unos cientos de entradas, algo que no se ha probado en el juego, así que pruébalo primero en una copia de tu guardado. "Quitar todo" los retira todos otra vez.'],
             ['Base: you own it (you buy or find it',
@@ -245,27 +234,21 @@ function otherName(name) {
             [/^Every material is now (\d+) for sale\.$/, m => `Cada material tiene ahora ${m[1]} en venta.`],
             [/^Put (\d+) items and recipes on sale\.$/, m => `Se pusieron ${m[1]} objetos y recetas en venta.`],
             [/^Removed (\d+) items and recipes\.$/, m => `Se quitaron ${m[1]} objetos y recetas.`],
-            [/^Made (\d+) enemies known\.$/, m => `Se hicieron conocidos ${m[1]} enemigos.`],
-            [/^Cleared (\d+) enemies\.$/, m => `Se borraron ${m[1]} enemigos.`],
             [/^(\d+) kinds of fix applied\.$/, m => `${m[1]} tipos de arreglo aplicados.`],
             [/^(\d+) kinds? of problem found\.$/, m => `${m[1]} ${plural(m[1], "tipo", "tipos")} de problema encontrado${parseInt(m[1]) === 1 ? "" : "s"}.`],
             [/^(\d+) materials for sale$/, m => `${m[1]} materiales en venta`],
             [/^(\d+) items and recipes for sale$/, m => `${m[1]} objetos y recetas en venta`],
             [/^1 item or recipe for sale$/, () => "1 objeto o receta en venta"],
             [/^(\d+) listed, (\d+) for sale$/, m => `${m[1]} en la lista, ${m[2]} en venta`],
-            [/^Known \((\d+)\)$/, m => `Conocidos (${m[1]})`],
-            [/^Incomplete \((\d+)\)$/, m => `Incompletos (${m[1]})`],
-            [/^(\d+) of (\d+) revealed$/, m => `${m[1]} de ${m[2]} reveladas`],
-            [/^(\d+) of (\d+) enemies completely known(?:, (\d+) incomplete)?\.$/, m =>
-                `${m[1]} de ${m[2]} enemigos completamente conocidos${m[3] ? `, ${m[3]} incompletos` : ""}.`],
-            [/^Not known \((\d+)\)$/, m => `Desconocidos (${m[1]})`],
-            [/^(\d+) of (\d+) enemies known\.$/, m => `${m[1]} de ${m[2]} enemigos conocidos.`],
             [/^(\d+) other entr(?:y isn't|ies aren't) on DescentForge's list and (?:is|are) left alone\.$/, m =>
                 `${m[1]} ${plural(m[1], "entrada más no está", "entradas más no están")} en la lista de DescentForge y se ${plural(m[1], "deja", "dejan")} como ${plural(m[1], "está", "están")}.`],
             [/^flags (\d+)$/, m => `flags ${m[1]}`],
             [/^(\d+) Act 2 items? (?:is|are) in this save, which can break a campaign without Act 2\.$/, m =>
                 `${m[1]} ${plural(m[1], "objeto del Acto 2 está", "objetos del Acto 2 están")} en este guardado, lo que puede romper una campaña sin el Acto 2.`],
-            [/^Party name: (.*)$/, m => `Nombre del grupo: ${m[1]}`],
+            [/^Revealed (\d+) enemies\.$/, m => `Se revelaron ${m[1]} enemigos.`],
+        [/^Forgot (\d+) enemies\.$/, m => `Se olvidaron ${m[1]} enemigos.`],
+        [/^(\d+) of (\d+) enemies fully revealed\.$/, m => `${m[1]} de ${m[2]} enemigos totalmente revelados.`],
+        [/^Party name: (.*)$/, m => `Nombre del grupo: ${m[1]}`],
             [/^Loaded: (.+)$/, m => `Cargado: ${m[1]}`],
             [/^Weak to: (.+)$/, m => `Débil a: ${typeList(m[1])}`],
             [/^Resists: (.+)$/, m => `Resiste: ${typeList(m[1])}`],
@@ -297,7 +280,8 @@ function otherName(name) {
             [/^Forget (.+)$/, m => `Olvidar ${m[1]}`],
             [/^(.+) owned$/, m => `${m[1]} poseído`],
             [/^(.+) upgraded$/, m => `${m[1]} mejorado`],
-            [/^(.+) known$/, m => `${m[1]} conocido`]
+            [/^(.+) revealed$/, m => `${m[1]} revelado`],
+        [/^(.+) known$/, m => `${m[1]} conocido`]
         ];
         return { types: TYPES, exact: EXACT, paragraphs: PARAGRAPHS, sentences: SENTENCES, attributes: ATTRIBUTES };
     }
@@ -333,6 +317,13 @@ function otherName(name) {
             "Hide all Act 2 content": "Masquer tout le contenu de l'Acte 2",
             "I want it all": "Je veux tout !",
             "Reveal enemies": "Révéler les ennemis",
+        "Reveal all": "Tout révéler",
+        "Forget all": "Tout oublier",
+        "REVEALED": "RÉVÉLÉ",
+        "Find an enemy": "Trouver un ennemi",
+        "Revealed": "Révélé",
+        "Not revealed yet": "Pas encore révélé",
+        "Every enemy is already revealed.": "Tous les ennemis sont déjà révélés.",
             "Reset to default": "Rétablir les valeurs initiales",
             "All skills": "Toutes les compétences",
             "All feats": "Tous les exploits",
@@ -361,11 +352,8 @@ function otherName(name) {
             "ITEM OR RECIPE": "OBJET OU RECETTE",
             "FOR SALE": "EN VENTE",
             "ENEMY": "ENNEMI",
-            "KNOWN": "CONNU",
             "WEAKNESSES": "FAIBLESSES",
             "RESISTANCES": "RÉSISTANCES",
-            "WHAT THEY ARE": "CE QUE C'EST",
-            "WHAT'S MISSING": "CE QUI MANQUE",
             "Skill": "Compétence",
             "Feat": "Exploit",
             // hero pages
@@ -385,8 +373,6 @@ function otherName(name) {
             "Clear all": "Tout retirer",
             "Complete all": "Tout compléter",
             "Set all": "Tout fixer",
-            "Make all known": "Tout rendre connu",
-            "Forget": "Oublier",
             "Add everything you don't own yet": "Ajouter tout ce que vous n'avez pas encore",
             // shop
             "Shop": "Boutique",
@@ -397,8 +383,6 @@ function otherName(name) {
             "This save doesn't have an extra-slots setting.": "Cette sauvegarde n'a pas de réglage d'emplacements supplémentaires.",
             // enemies
             "Enemy weaknesses": "Faiblesses des ennemis",
-            "Unknown": "Inconnu",
-            "Nothing listed": "Rien de listé",
             "Known": "Connu",
             "Owned": "Possédé",
             "You already own this": "Vous le possédez déjà",
@@ -412,7 +396,6 @@ function otherName(name) {
             "No materials for sale.": "Aucun matériau en vente.",
             "Everything available is already for sale or owned.": "Tout ce qui est disponible est déjà en vente ou possédé.",
             "Everything you can add is already for sale.": "Tout ce que vous pouvez ajouter est déjà en vente.",
-            "Every enemy is already known.": "Tous les ennemis sont déjà connus.",
             "Clean up this save?": "Nettoyer cette sauvegarde ?",
             "Continue?": "Continuer ?",
             "Please select a file before clicking 'Load'": "Sélectionnez un fichier avant de cliquer sur « Charger »",
@@ -438,33 +421,23 @@ function otherName(name) {
             // tooltips
             "Included in the upgraded version. Untick the upgrade to go back to the base.":
                 "Inclus dans la version améliorée. Décochez l'amélioration pour revenir à la base.",
-            "From DescentForge's enemy list. The save doesn't reveal these for an enemy that isn't known.":
-                "Tiré de la liste d'ennemis de DescentForge. La sauvegarde ne les révèle pas pour un ennemi qui n'est pas connu.",
             "The number the save stores for this enemy": "Le nombre que la sauvegarde enregistre pour cet ennemi",
-            "The weaknesses and resistances that are still hidden, from DescentForge's enemy list":
-                "Les faiblesses et résistances encore cachées, d'après la liste d'ennemis de DescentForge",
             "Swap it out in the game first, then untick it here.": "Remplacez-le d'abord dans le jeu, puis décochez-le ici.",
             "Swap it out in the game first, then untick the recipe.": "Remplacez-le d'abord dans le jeu, puis décochez la recette."
         });
 
         /* ---------- Paragraphs, matched by how they start ---------- */
         const PARAGRAPHS = [
+        ['Tick an enemy to reveal all its weaknesses',
+         'Cochez un ennemi pour révéler toutes ses faiblesses et résistances, ou décochez-le pour l\'oublier. Les étiquettes pleines sont révélées. Les étiquettes en pointillés sont encore cachées.'],
+        ['The small "flags" number under an enemy',
+         'Le petit nombre « flags » sous un ennemi est ce que la sauvegarde enregistre pour lui. Une partie de ce nombre (le bit 0) n\'est pas comprise et est ignorée ; elle est activée chaque fois qu\'un ennemi est révélé.'],
             ['Save files end in .sav',
              'Les fichiers de sauvegarde se terminent par .sav et ressemblent à 2026-09-29_20-05-46.sav. Le fichier est lu dans votre navigateur et n\'est jamais envoyé nulle part. Votre copie modifiée porte un nom plus récent d\'une seconde, ce qui permet au jeu de la charger comme votre dernière sauvegarde. Gardez une copie de sauvegarde de l\'original.'],
             ['Only one of each is sold.',
              'Un seul exemplaire de chaque est vendu. Décochez-en un pour le retirer des étagères. Ajoutez-en d\'autres dans l\'onglet Articles de la boutique.'],
             ['Nothing for sale yet.',
              'Rien n\'est encore en vente. Ajoutez-en dans l\'onglet Articles de la boutique.'],
-            ['The game reveals an enemy\'s weaknesses',
-             'Le jeu révèle les faiblesses et résistances d\'un ennemi une par une. Un ennemi est Connu quand toutes sont révélées, Incomplet quand certaines restent cachées, et Inconnu quand le groupe ne l\'a pas rencontré. Cochez la case pour tout révéler sur un ennemi.'],
-            ['Revealed weaknesses and resistances show their name',
-             'Les faiblesses et résistances révélées affichent leur nom. Une faiblesse cachée apparaît comme Inconnu, comme dans le jeu, et la dernière colonne indique ce que c\'est, d\'après la liste d\'ennemis de DescentForge, pour que vous puissiez le vérifier dans le jeu.'],
-            ['Each enemy shows the number the save stores',
-             'Chaque ennemi affiche le nombre que la sauvegarde enregistre pour lui (« flags »). Une partie de ce nombre (le bit 0) n\'est pas comprise et est ignorée ; elle est activée chaque fois qu\'un ennemi est rendu connu.'],
-            ['In Incomplete, Forget makes the enemy',
-             'Dans Incomplets, Oublier rend l\'ennemi de nouveau inconnu. Décocher un ennemi connu l\'oublie aussi.'],
-            ['Some weaknesses or resistances are still hidden.',
-             'Certaines faiblesses ou résistances sont encore cachées. Cochez la case pour révéler le reste.'],
             ['"Add everything" puts every item and recipe',
              '« Tout ajouter » met en vente tous les objets et recettes de la liste ci-dessous (ceux de l\'Acte 2 seulement si la campagne les autorise). Cela peut faire quelques centaines d\'entrées, ce qui n\'a pas été essayé dans le jeu : testez d\'abord sur une copie de votre sauvegarde. « Tout retirer » les enlève tous.'],
             ['Base: you own it (you buy or find it',
@@ -511,27 +484,21 @@ function otherName(name) {
             [/^Every material is now (\d+) for sale\.$/, m => `Chaque matériau est désormais en vente (${m[1]}).`],
             [/^Put (\d+) items and recipes on sale\.$/, m => `${m[1]} objets et recettes mis en vente.`],
             [/^Removed (\d+) items and recipes\.$/, m => `${m[1]} objets et recettes retirés.`],
-            [/^Made (\d+) enemies known\.$/, m => `${m[1]} ennemis rendus connus.`],
-            [/^Cleared (\d+) enemies\.$/, m => `${m[1]} ennemis effacés.`],
             [/^(\d+) kinds of fix applied\.$/, m => `${m[1]} types de corrections appliquées.`],
             [/^(\d+) kinds? of problem found\.$/, m => `${m[1]} ${plural(m[1], "type de problème trouvé", "types de problèmes trouvés")}.`],
             [/^(\d+) materials for sale$/, m => `${m[1]} matériaux en vente`],
             [/^(\d+) items and recipes for sale$/, m => `${m[1]} objets et recettes en vente`],
             [/^1 item or recipe for sale$/, () => "1 objet ou recette en vente"],
             [/^(\d+) listed, (\d+) for sale$/, m => `${m[1]} listés, ${m[2]} en vente`],
-            [/^Known \((\d+)\)$/, m => `Connus (${m[1]})`],
-            [/^Incomplete \((\d+)\)$/, m => `Incomplets (${m[1]})`],
-            [/^(\d+) of (\d+) revealed$/, m => `${m[1]} sur ${m[2]} révélées`],
-            [/^(\d+) of (\d+) enemies completely known(?:, (\d+) incomplete)?\.$/, m =>
-                `${m[1]} ennemis sur ${m[2]} complètement connus${m[3] ? `, ${m[3]} incomplets` : ""}.`],
-            [/^Not known \((\d+)\)$/, m => `Inconnus (${m[1]})`],
-            [/^(\d+) of (\d+) enemies known\.$/, m => `${m[1]} ennemis sur ${m[2]} connus.`],
             [/^(\d+) other entr(?:y isn't|ies aren't) on DescentForge's list and (?:is|are) left alone\.$/, m =>
                 `${m[1]} ${plural(m[1], "autre entrée ne figure pas sur la liste de DescentForge et n'est pas modifiée", "autres entrées ne figurent pas sur la liste de DescentForge et ne sont pas modifiées")}.`],
             [/^flags (\d+)$/, m => `flags ${m[1]}`],
             [/^(\d+) Act 2 items? (?:is|are) in this save, which can break a campaign without Act 2\.$/, m =>
                 `${m[1]} ${plural(m[1], "objet de l'Acte 2 se trouve", "objets de l'Acte 2 se trouvent")} dans cette sauvegarde, ce qui peut casser une campagne sans l'Acte 2.`],
-            [/^Party name: (.*)$/, m => `Nom du groupe : ${m[1]}`],
+            [/^Revealed (\d+) enemies\.$/, m => `${m[1]} ennemis révélés.`],
+        [/^Forgot (\d+) enemies\.$/, m => `${m[1]} ennemis oubliés.`],
+        [/^(\d+) of (\d+) enemies fully revealed\.$/, m => `${m[1]} ennemis sur ${m[2]} entièrement révélés.`],
+        [/^Party name: (.*)$/, m => `Nom du groupe : ${m[1]}`],
             [/^Loaded: (.+)$/, m => `Chargé : ${m[1]}`],
             [/^Weak to: (.+)$/, m => `Faible contre : ${typeList(m[1])}`],
             [/^Resists: (.+)$/, m => `Résiste à : ${typeList(m[1])}`],
@@ -563,7 +530,8 @@ function otherName(name) {
             [/^Forget (.+)$/, m => `Oublier ${m[1]}`],
             [/^(.+) owned$/, m => `${m[1]} possédé`],
             [/^(.+) upgraded$/, m => `${m[1]} amélioré`],
-            [/^(.+) known$/, m => `${m[1]} connu`]
+            [/^(.+) revealed$/, m => `${m[1]} révélé`],
+        [/^(.+) known$/, m => `${m[1]} connu`]
         ];
         return { types: TYPES, exact: EXACT, paragraphs: PARAGRAPHS, sentences: SENTENCES, attributes: ATTRIBUTES };
     }

@@ -370,12 +370,6 @@ tr.part-divider td{
 	border-color: #9a5d5d;
 }
 
-#enemiesKnown td,
-#enemiesIncomplete td,
-#enemiesUnknown td{
-	text-align: left;
-}
-
 .vuln-tag.missing{
 	border-style: dashed;
 	opacity: 0.7;
@@ -385,16 +379,6 @@ tr.part-divider td{
 	display: block;
 	font-size: 12px;
 	color: #8f8f8f;
-}
-
-.vuln-tag.unknown{
-	color: #b9b9b9;
-	border-color: #6b6b6b;
-}
-
-.enemy-actual div{
-	white-space: nowrap;
-	margin: 2px 0;
 }
 
 .shop-hero-group{
@@ -446,57 +430,31 @@ body.hide-act2 tr.act-divider{
 	margin-top: 4px;
 }
 
-.enemy-partial{
-	display: block;
-	font-size: 12px;
-	color: #f0b36e;
-}
-
-#enemiesIncompleteBox[hidden]{
-	display: none;
-}
-
-/* Enemies tab: everything lines up on the left, and the columns line up from table to table */
+/* Enemies tab: one table, left-aligned */
 #enemiesData > .table-container{
 	margin: 0 0 6px 20px;
 	align-self: flex-start;
 }
 
-#enemiesKnown,
-#enemiesIncomplete,
-#enemiesUnknown{
+#enemiesAll{
 	table-layout: fixed;
+	width: 960px;
 }
 
-#enemiesKnown{ width: 860px; }
-#enemiesUnknown{ width: 1090px; }
-#enemiesIncomplete{ width: 1180px; }
+#enemiesAll th:nth-child(1){ width: 260px; }
+#enemiesAll th:nth-child(2){ width: 115px; }
+#enemiesAll th:nth-child(3){ width: 335px; }
+#enemiesAll th:nth-child(4){ width: 250px; }
 
-#enemiesKnown th:nth-child(1),
-#enemiesIncomplete th:nth-child(1),
-#enemiesUnknown th:nth-child(1){ width: 260px; }
-
-#enemiesKnown th:nth-child(2),
-#enemiesIncomplete th:nth-child(2),
-#enemiesUnknown th:nth-child(2){ width: 80px; }
-
-#enemiesKnown th:nth-child(3),
-#enemiesIncomplete th:nth-child(3),
-#enemiesUnknown th:nth-child(3){ width: 300px; }
-
-#enemiesKnown th:nth-child(4),
-#enemiesIncomplete th:nth-child(4),
-#enemiesUnknown th:nth-child(4){ width: 220px; }
-
-#enemiesIncomplete th:nth-child(5),
-#enemiesUnknown th:nth-child(5){ width: 230px; }
-
-#enemiesIncomplete th:nth-child(6){ width: 90px; }
-
-#enemiesKnown td,
-#enemiesIncomplete td,
-#enemiesUnknown td{
+#enemiesAll td{
+	text-align: left;
 	overflow-wrap: anywhere;
+}
+
+.enemy-search{
+	min-width: 200px;
+	padding: 6px 8px;
+	margin-left: 6px;
 }
 
 .enemy-help .section-note{

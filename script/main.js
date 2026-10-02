@@ -36,8 +36,9 @@ function loadFromFile(file) {
         }
         originalFileName = file.name;
         act2Override = null;
-        // An Act 1 campaign starts with the Act 2 content hidden; an Act 2 campaign shows it
-        act2Hidden = saveIsAct1();
+        // An Act 1 campaign starts with the Act 2 content hidden, unless the save already has some
+        // (an Act 1 campaign that owns Act 2 can hold Act 2 items); an Act 2 campaign shows it
+        act2Hidden = saveIsAct1() && act2ItemsInSave().length === 0;
         showLoaded(file.name);
         // Build the interface to modify the save file
         buildCompleteGUI()
