@@ -60,6 +60,7 @@
             <li data-id="SHOP">Shop</li>
             <li data-id="SHOP_ITEMS">Shop items</li>
             <li data-id="ENEMIES">Enemies</li>
+            <li data-id="MISSIONS">Missions</li>
         </ul>
 
         
@@ -227,6 +228,96 @@
                     </table>
                 </div>
             </div>
+
+            <div id="missionsData">
+                <div class="mission-warning" role="note">
+                    <h2>WARNING: unknown progression issues</h2>
+                    <p>Changing missions can cause progression problems that nobody has mapped yet. The game may unlock the wrong things, skip or repeat story, or stop the campaign from moving on.</p>
+                    <p>This tab is meant for replaying missions after an act is complete: untick Done on a finished mission and tick Open on the map to play it again. It is not a way to skip ahead, and it has not been tested for that.</p>
+                    <p>Back up your save first and try it on a copy.</p>
+                </div>
+                <div class="table-container mission-help">
+                    <h1>Missions <span class="exp-badge">Experimental</span></h1>
+                    <p class="section-note">Experimental. This was worked out from a few saves, so use it on a copy of your save. Act 1 comes from a before and after pair and has had only light testing in the game; Act 2 comes from one finished save and has not been tested in the game.</p>
+                    <p id="missionsAct2Note" class="section-note" style="display:none">This is an Act 2 campaign. Act 2 was worked out from one finished save, with no before and after pair, so it is less certain than Act 1. Act 2 results can't be edited, and its two mission counters are left as they are.</p>
+                    <ul class="section-note">
+                        <li>Tick Done for the missions the party has finished and pick Won or Lost. Tick Open on the map for the missions the map should offer next.</li>
+                        <li>Press Apply mission changes. It updates the finished and open lists, the campaign log, each mission's result, the map's last mission and the campaign progression number (18 plus 2 for every mission done).</li>
+                        <li>Heroes who haven't joined yet, gold, XP, feat rerolls and story events are left alone.</li>
+                    </ul>
+                    <p id="missionsProgress" class="section-note"></p>
+                    <label class="mission-option"><input type="checkbox" id="missionsSetProgression" checked onchange="refreshMissionNote()"> Set the campaign progression number to match (18 + 2 per mission done)</label>
+                    <div id="missionsBulk" class="bulk-bar">
+                        <button type="button" id="missionsApply" class="blue-button" onclick="applyMissions()">Apply mission changes</button>
+                        <button type="button" id="missionsRevert" class="blue-button" onclick="missionsRevert()">Discard changes</button>
+                        <button type="button" class="blue-button" onclick="missionsMarkAll(true, 1)">Mark all Act 1 missions done</button>
+                        <button type="button" id="missionsAct2Btn" class="blue-button" onclick="missionsMarkAll(true, 2)">Mark all Act 2 missions done</button>
+                        <button type="button" class="blue-button" onclick="missionsMarkAll(false)">Mark all not done</button>
+                        <button type="button" class="blue-button" onclick="missionsSuggestOpen()">Open what the game opened for these</button>
+                    </div>
+                    <p id="missionsDirty" class="section-note mission-dirty" role="status"></p>
+                    <p id="missionsStatus" class="section-note" role="status"></p>
+                </div>
+                <div class="table-container">
+                    <table id="missionsTable">
+                        <tr>
+                            <th>MISSION</th>
+                            <th>DONE</th>
+                            <th>RESULT</th>
+                            <th>OPEN ON MAP</th>
+                        </tr>
+                    </table>
+                </div>
+                <div class="table-container events-help">
+                    <h1>Events <span class="exp-badge">Experimental</span></h1>
+                    <p class="section-note">Experimental, and less certain than missions: no save shows an event being played, only events waiting and events finished. A narrative event waits in the same open list as the missions. A city event waits in town; it can be marked done or taken off the town, but not put back, because where it stood is only known while it waits. Story choices that events make are not touched.</p>
+                    <div class="bulk-bar">
+                        <button type="button" id="eventsApply" class="blue-button" onclick="applyEvents()">Apply event changes</button>
+                        <button type="button" id="eventsRevert" class="blue-button" onclick="eventsRevert()">Discard event changes</button>
+                    </div>
+                    <p id="eventsDirty" class="section-note mission-dirty" role="status"></p>
+                    <p id="eventsStatus" class="section-note" role="status"></p>
+                </div>
+                <div class="table-container">
+                    <table id="eventsTable">
+                        <tr>
+                            <th>EVENT</th>
+                            <th>KIND</th>
+                            <th>DONE</th>
+                            <th>PENDING</th>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <dialog id="ngPlusDialog">
+                <h2>New Game+ <span class="exp-badge">Experimental</span></h2>
+                <p class="section-note">New Game+ starts the story again from Quest 1 and keeps what you have earned: items, recipes, weapons and upgrades, materials, gold, skills, feats, enemy weaknesses and each hero's equipped weapons and trinket. It does this by moving all of that into the save of a brand-new campaign. The save you have open is not changed.</p>
+                <ol class="section-note">
+                    <li>In the game, start a new Act 1 campaign with the heroes you want to play, and set the difficulty.</li>
+                    <li>As soon as you can save, save, then exit the game.</li>
+                    <li>Choose that new campaign's save below, pick your options and press Build New Game+.</li>
+                    <li>Download the result and replace the new campaign's save with it: copy it into that slot's folder. It is named one second newer, so the game loads it.</li>
+                </ol>
+                <p class="section-note">Everything about the story comes from the new campaign: missions, quest results, story choices, events, the shop, party name, difficulty, XP, feat rerolls, Legends and companions. Which heroes play comes from the new campaign too, so it is not changed here.</p>
+                <p class="section-note">It has had only light testing in the game. Back up your saves first.</p>
+                <label class="ng-file" for="ngFresh">New campaign's save file</label>
+                <input type="file" id="ngFresh" accept=".sav" onchange="ngPlusChooseFresh()">
+                <p id="ngFreshInfo" class="section-note" role="status"></p>
+                <fieldset class="ng-options">
+                    <legend>Options</legend>
+                    <label><input type="checkbox" id="ngKeepGear" checked onchange="ngPlusInvalidate()"> Keep each hero's equipped weapons and trinket</label>
+                    <label><input type="checkbox" id="ngResetVirtues" onchange="ngPlusInvalidate()"> Reset the virtues of all heroes (VirtueOneValue and VirtueTwoValue) to the new campaign's</label>
+                </fieldset>
+                <div class="bulk-bar">
+                    <button type="button" id="ngBuild" class="blue-button" onclick="buildNewGamePlusFromDialog()" disabled>Build New Game+</button>
+                    <button type="button" id="ngDownload" class="blue-button" onclick="downloadNewGamePlus()" disabled>Download the save</button>
+                    <button type="button" id="ngOpen" class="blue-button" onclick="openNewGamePlusHere()" disabled>Open it in the editor</button>
+                    <button type="button" id="ngClose" class="blue-button" onclick="closeNewGamePlus()">Close</button>
+                </div>
+                <p id="ngStatus" class="section-note" role="status"></p>
+                <ul id="ngReport" class="section-note"></ul>
+            </dialog>
 
             <h1 id="brynnTitle" class="heroTitle" data-id="HERO_BRYNN">Brynn</h1>
             <div id="brynnData">

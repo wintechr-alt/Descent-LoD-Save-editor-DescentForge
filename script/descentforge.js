@@ -984,7 +984,7 @@ function ensureActControls() {
     box.id = "actControls";
     box.innerHTML =
         '<label><input type="checkbox" id="act2Toggle"> Act 2 content allowed</label>' +
-        '<label><input type="checkbox" id="act2Hide"> Hide all Act 2 content</label>' +
+        '<label id="act2HideLabel"><input type="checkbox" id="act2Hide"> Hide all Act 2 content</label>' +
         '<span id="act2Note" class="section-note"></span>' +
         '';
     const partyName = document.getElementById("partyName");
@@ -1010,6 +1010,11 @@ function ensureActControls() {
 
 function applyActRules() {
     ensureActControls();
+    // Hiding Act 2 content only makes sense for an Act 1 campaign. An Act 2 save never hides
+    // anything, and the checkbox isn't shown for it.
+    const act1Save = saveIsAct1();
+    if (!act1Save) act2Hidden = false;
+    document.getElementById("act2HideLabel").style.display = act1Save ? "" : "none";
     const allowed = act2Allowed();
     const permitted = act2Permitted();
     document.body.classList.toggle("hide-act2", act2Hidden);
@@ -1550,6 +1555,7 @@ function setupEverythingControls() {
     });
     add(rows[0], "Reveal enemies", () => revealEnemies());
     add(rows[0], "Reset to default", resetToDefault).classList.add("reset-button");   // asks first itself
+    add(rows[0], "New Game+", () => { openNewGamePlus(); return ""; });
     // Row 2: All skills, All feats
     add(rows[1], "All skills", () => bulkEverything(HERO_IDS.map(h => allHeroesData[h].tableIds.skillTableId), 1));
     add(rows[1], "All feats", () => bulkEverything(HERO_IDS.map(h => allHeroesData[h].tableIds.featTableId), 1), FEAT_WARNING);
@@ -2188,4 +2194,940 @@ function applyEnemyFilter() {
         if (tr.classList.contains("act-divider")) tr.hidden = !!query;
         else if (tr.dataset.search !== undefined) tr.hidden = !!query && !tr.dataset.search.includes(query);
     });
+}
+
+
+/*____________________________ MISSIONS (EXPERIMENTAL) ____________________________
+    Marks missions done, picks which ones the map offers, and keeps the places that
+    follow them in step. Meant for replaying missions after an act is finished. Changing
+    missions can cause progression problems nobody has mapped, and the page says so.
+    Worked out from five saves (see docs/SAVE_FILE_NOTES.md): Act 1 from a before/after pair
+    around one mission, Act 2 from one finished save only. Act 1 has had light testing in the game, Act 2 none.
+
+    Finishing a mission in a real Act 1 save changed:
+    - GameState.ActiveDestinationIds: the mission leaves (events sit in this list too)
+    - GameState.CompletedDestinationIds: the mission is added
+    - GameState.CampaignLogEntries: { EntryId, EntryType: 0, DateCompleted: "MM/DD/YYYY" }
+    - the Act 1 blackboard: Quest_<n> (Quest_S<n> for a side quest) = WIN or LOST
+    - the WorldMapDT blackboard: CurDestId and "Local Last Quest" = the mission just done
+    - the @Global_BB blackboard: CampaignProgression = 18 + 2 x missions done
+    Act 2 uses the same lists and log, with ACT2_QUEST_<n> IDs, plus the @Act_2_BB blackboard:
+    Quest_<n> = WIN and "Most Recent Quest" = the last Act 2 mission done. Its map blackboard
+    (Act_2_WorldMap_DT) keeps the hub in CurDestId, so that is left alone, and its two counters
+    (Number of A2 Quests Played, Quest Count) are left alone because they are not understood.
+    Not touched on purpose: UnavailableHeroes, gold, XP, feat rerolls, events, enemy flags.
+*/
+
+const MISSION_RESULTS = ["WIN", "LOST"];
+
+// What the map offered in saves we have seen, keyed by the missions that were done
+const MISSION_OPENINGS = [
+    { done: ["STORY_QUEST_1"], open: ["STORY_QUEST_2", "STORY_QUEST_3"] },
+    { done: ["STORY_QUEST_1", "STORY_QUEST_2", "STORY_QUEST_3"], open: ["STORY_QUEST_4_S", "STORY_QUEST_5"] }
+];
+
+function buildMissionCatalog() {
+    const list = [];
+    for (let n = 1; n <= 14; n++) {
+        list.push({ id: n === 4 ? "STORY_QUEST_4_S" : "STORY_QUEST_" + n, label: "Quest " + n,
+                    key: "Quest_" + n, act: 1 });
+    }
+    for (let n = 1; n <= 2; n++) {
+        list.push({ id: "SIDE_QUEST_" + n, label: "Side quest " + n, key: "Quest_S" + n, act: 1 });
+    }
+    for (let n = 1; n <= 11; n++) {
+        list.push({ id: "ACT2_QUEST_" + n, label: "Act 2 quest " + n, key: "Quest_" + n, act: 2 });
+    }
+    return list;
+}
+const MISSION_CATALOG = buildMissionCatalog();
+const MISSION_BY_ID = {};
+MISSION_CATALOG.forEach(m => { MISSION_BY_ID[m.id] = m; });
+
+var missionDraft = null;        // { rows: [...], save: completeSave }
+var missionsWarnedFor = null;   // the save the "unknown progression issues" question was answered for
+var missionsOptionsFor = null;  // the save the progression checkbox was last reset for
+
+// An Act 2 campaign (Act is 1); an Act 1 campaign has Act 0
+function isAct2Campaign() {
+    return !!completeSave.Act;
+}
+
+// Act 2 missions are listed for an Act 2 campaign, or when the save already has some
+function showAct2Missions() {
+    if (isAct2Campaign()) return true;
+    const gs = gameState();
+    return [].concat(gs.CompletedDestinationIds || [], gs.ActiveDestinationIds || [])
+             .some(id => /^ACT2_QUEST_/.test(id));
+}
+
+function escapeRegExp(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function findEntity(test) {
+    return (completeSave.GameSceneData.SceneEntities || []).find(test);
+}
+
+function act1Blackboard() {
+    return findEntity(e => /^@Act_1_BB/.test(e.Name) && /"Quest_1":\{/.test(e.SerializedBlackboard || ""));
+}
+
+function act2Blackboard() {
+    return findEntity(e => /^@Act_2_BB/.test(e.Name) && /"Quest_1":\{/.test(e.SerializedBlackboard || ""));
+}
+
+// Reads a string variable out of a blackboard's text; null when it has no value
+function readBlackboardString(text, name) {
+    const m = new RegExp('"' + escapeRegExp(name) + '":\\{"_value":"([^"]*)"').exec(text || "");
+    return m ? m[1] : null;
+}
+
+// Edits the text directly (like setShopExtraSlots) so the rest stays as the game wrote it.
+// Returns true when the variable was found.
+function writeBlackboardValue(entity, field, name, value, isNumber) {
+    if (!entity) return false;
+    const text = entity[field] || "";
+    const literal = isNumber ? String(value) : '"' + value + '"';
+    const keyEsc = escapeRegExp(name);
+    const withValue = new RegExp('("' + keyEsc + '":\\{"_value":)(?:"[^"]*"|-?\\d+(?:\\.\\d+)?)');
+    if (withValue.test(text)) {
+        entity[field] = text.replace(withValue, (all, head) => head + literal);
+        return true;
+    }
+    const bare = '"' + name + '":{';
+    if (text.includes(bare)) {
+        entity[field] = text.replace(bare, bare + '"_value":' + literal + ",");
+        return true;
+    }
+    return false;
+}
+
+function todayAsGameDate() {
+    const d = new Date();
+    const p = n => String(n).padStart(2, "0");
+    return p(d.getMonth() + 1) + "/" + p(d.getDate()) + "/" + d.getFullYear();
+}
+
+// One row per mission the editor knows, plus any other finished mission the save lists
+function buildMissionRows() {
+    const gs = gameState();
+    const completed = gs.CompletedDestinationIds || [];
+    const active = gs.ActiveDestinationIds || [];
+    const bb1 = act1Blackboard();
+    const bb2 = act2Blackboard();
+    const showAct2 = showAct2Missions();
+    const rows = [];
+    MISSION_CATALOG.forEach(m => {
+        if (m.act === 2 && !showAct2) return;
+        const board = m.act === 1 ? bb1 : bb2;
+        const saved = board ? readBlackboardString(board.SerializedBlackboard, m.key) : null;
+        const done = completed.includes(m.id);
+        rows.push({
+            id: m.id, label: m.label, key: m.key, act: m.act, custom: false,
+            done: done, open: active.includes(m.id),
+            result: saved || (m.act === 1 && !done ? "UNPLAYED" : (done ? "WIN" : "")),
+            hasResult: saved !== null
+        });
+    });
+    completed.forEach(id => {
+        if (MISSION_BY_ID[id]) return;
+        rows.push({ id: id, label: "Other mission", key: null, act: 1, custom: true,
+                    done: true, open: false, result: "", hasResult: false });
+    });
+    rows.forEach(r => { r.initial = JSON.stringify([r.done, r.open, r.result]); });
+    return rows;
+}
+
+function missionRowDirty(r) {
+    return JSON.stringify([r.done, r.open, r.result]) !== r.initial;
+}
+
+function missionsDirty() {
+    return !!(missionDraft && missionDraft.save === completeSave && missionDraft.rows.some(missionRowDirty));
+}
+
+function plannedProgression() {
+    const gs = gameState();
+    const completed = gs.CompletedDestinationIds || [];
+    const draftIds = new Set(missionDraft.rows.map(r => r.id));
+    const kept = completed.filter(id => !draftIds.has(id)).length;
+    const done = missionDraft.rows.filter(r => r.done).length;
+    return 18 + 2 * (kept + done);
+}
+
+function currentProgression() {
+    const bb = getBlackboard();
+    const m = bb && /"CampaignProgression":\{"_value":(-?\d+)/.exec(bb.SerializedBlackboard || "");
+    return m ? parseInt(m[1]) : null;
+}
+
+function missionsSetsProgression() {
+    const box = document.getElementById("missionsSetProgression");
+    return !box || box.checked;
+}
+
+function refreshMissionNote() {
+    const note = document.getElementById("missionsProgress");
+    const dirty = document.getElementById("missionsDirty");
+    if (!note || !missionDraft) return;
+    const current = currentProgression();
+    if (current === null) {
+        note.textContent = "This save has no campaign progression number.";
+    } else if (!missionsSetsProgression()) {
+        note.textContent = "Campaign progression: " + current + " (it will be left as it is).";
+    } else {
+        note.textContent = "Campaign progression: " + current + ". After applying: " + plannedProgression() + ".";
+    }
+    dirty.textContent = missionsDirty() ? "You have changes that aren't applied yet. Press Apply mission changes." : "";
+    document.getElementById("missionsApply").disabled = !missionsDirty();
+    document.getElementById("missionsRevert").disabled = !missionsDirty();
+}
+
+function missionLabelCell(r) {
+    const wrap = document.createElement("span");
+    wrap.className = "item-label";
+    const text = document.createElement("span");
+    text.className = "item-label-text";
+    const name = document.createElement("span");
+    name.className = "item-name";
+    name.textContent = r.label;
+    text.appendChild(name);
+    const id = document.createElement("span");
+    id.className = "item-id-label";
+    id.textContent = r.id;
+    text.appendChild(id);
+    wrap.appendChild(text);
+    return wrap;
+}
+
+function missionResultWord(value) {
+    return value === "WIN" ? "Won" : value === "LOST" ? "Lost" : value === "UNPLAYED" ? "Not played" : value;
+}
+
+// Act 2 results can't be edited: only WIN has been seen there, and the word for "not played" isn't known.
+// A mission that is un-done keeps what the save says; one that is done and has no result gets WIN.
+function act2ResultText(r) {
+    if (r.done) return missionResultWord(r.hasResult && r.result ? r.result : "WIN");
+    if (r.hasResult && r.result) return missionResultWord(r.result) + " (kept as saved)";
+    return "Not played";
+}
+
+function updateMissionRow(r, tr) {
+    const done = tr.querySelector(".mission-done");
+    const open = tr.querySelector(".mission-open");
+    const result = tr.querySelector(".mission-result");
+    const fixed = tr.querySelector(".mission-result-fixed");
+    done.checked = r.done;
+    open.checked = r.open && !r.done;
+    open.disabled = r.done;
+    if (result) {
+        result.value = r.result || "UNPLAYED";
+        result.disabled = !r.done;
+    }
+    if (fixed) fixed.textContent = act2ResultText(r);
+    tr.classList.toggle("mission-changed", missionRowDirty(r));
+}
+
+function buildMissionsGUI() {
+    const table = document.getElementById("missionsTable");
+    if (!table || !completeSave) return;
+    if (!missionDraft || missionDraft.save !== completeSave) {
+        missionDraft = { save: completeSave, rows: buildMissionRows() };
+    }
+    if (missionsOptionsFor !== completeSave) {
+        document.getElementById("missionsSetProgression").checked = true;
+        missionsOptionsFor = completeSave;
+    }
+    [...table.querySelectorAll("tr")].slice(1).forEach(tr => tr.remove());
+    const hasAct2Rows = missionDraft.rows.some(r => r.act === 2);
+    document.getElementById("missionsAct2Note").style.display = isAct2Campaign() ? "" : "none";
+    document.getElementById("missionsAct2Btn").style.display = hasAct2Rows ? "" : "none";
+
+    missionDraft.rows.forEach(r => {
+        const tr = document.createElement("tr");
+        const c0 = tr.insertCell();
+        c0.appendChild(missionLabelCell(r));
+        if (r.act === 2) {
+            const badge = document.createElement("span");
+            badge.className = "act-badge always-shown";
+            badge.textContent = "Act 2";
+            c0.appendChild(badge);
+        }
+
+        const c1 = tr.insertCell();
+        const done = document.createElement("input");
+        done.type = "checkbox";
+        done.className = "mission-done";
+        done.setAttribute("aria-label", r.label + " done");
+        done.onchange = () => {
+            r.done = done.checked;
+            if (r.done) {
+                r.open = false;
+                if (!r.custom && r.act === 1 && (!r.result || r.result === "UNPLAYED")) r.result = "WIN";
+            } else if (!r.custom && r.act === 1) {
+                r.result = "UNPLAYED";
+            }
+            updateMissionRow(r, tr);
+            refreshMissionNote();
+        };
+        c1.appendChild(done);
+
+        const c2 = tr.insertCell();
+        if (r.custom) {
+            c2.textContent = "n/a";
+        } else if (r.act === 2) {
+            const fixed = document.createElement("span");
+            fixed.className = "mission-result-fixed";
+            c2.appendChild(fixed);
+        } else {
+            const sel = document.createElement("select");
+            sel.className = "mission-result blue-button";
+            sel.setAttribute("aria-label", r.label + " result");
+            const options = ["UNPLAYED"].concat(MISSION_RESULTS);
+            if (r.result && !options.includes(r.result)) options.push(r.result);
+            options.forEach(v => {
+                const o = document.createElement("option");
+                o.value = v;
+                o.textContent = ["WIN", "LOST", "UNPLAYED"].includes(v) ? missionResultWord(v) : v + " (as saved)";
+                sel.appendChild(o);
+            });
+            sel.onchange = () => { r.result = sel.value; updateMissionRow(r, tr); refreshMissionNote(); };
+            c2.appendChild(sel);
+        }
+
+        const c3 = tr.insertCell();
+        const open = document.createElement("input");
+        open.type = "checkbox";
+        open.className = "mission-open";
+        open.setAttribute("aria-label", r.label + " open on the map");
+        open.onchange = () => { r.open = open.checked; updateMissionRow(r, tr); refreshMissionNote(); };
+        c3.appendChild(open);
+
+        table.appendChild(tr);
+        updateMissionRow(r, tr);
+    });
+    refreshMissionNote();
+}
+
+function missionsStatus(text) {
+    document.getElementById("missionsStatus").textContent = text;
+}
+
+// act: 1 or 2 for just that act's missions, nothing for every mission listed
+function missionsMarkAll(done, act) {
+    if (!missionDraft) return;
+    missionDraft.rows.forEach(r => {
+        if (r.custom || (act && r.act !== act)) return;
+        r.done = done;
+        r.open = false;
+        if (r.act === 1) r.result = done ? (r.result && r.result !== "UNPLAYED" ? r.result : "WIN") : "UNPLAYED";
+    });
+    buildMissionsGUI();
+    missionsStatus(!done ? "All missions marked not done. Press Apply mission changes."
+                  : act === 2 ? "All Act 2 missions marked done. Press Apply mission changes."
+                              : "All Act 1 missions marked done. Press Apply mission changes.");
+}
+
+// Open what the map offered in the saves we have seen, when this combination of finished missions is one of them
+function missionsSuggestOpen() {
+    if (!missionDraft) return;
+    const doneIds = missionDraft.rows.filter(r => r.done).map(r => r.id).sort().join(",");
+    const known = MISSION_OPENINGS.find(o => o.done.slice().sort().join(",") === doneIds);
+    if (!known) {
+        missionsStatus("The editor has no record of what opens after this combination of missions. " +
+                       "Tick the ones to open yourself.");
+        return;
+    }
+    missionDraft.rows.forEach(r => { if (!r.done) r.open = known.open.includes(r.id); });
+    buildMissionsGUI();
+    missionsStatus("Open on the map: " + known.open.length + ", as in a save with these missions done.");
+}
+
+function missionsRevert() {
+    if (!missionDraft) return;
+    missionDraft = null;
+    buildMissionsGUI();
+    missionsStatus("Changes discarded.");
+}
+
+function applyMissions() {
+    if (!completeSave || !missionDraft) return;
+    if (!missionsDirty()) { missionsStatus("Nothing to apply."); return; }
+    // Asked once for each save that is loaded
+    if (missionsWarnedFor !== completeSave) {
+        if (!confirm("Changing missions can cause unknown progression problems. " +
+                     "It is meant for replaying missions after an act is complete.\n\nApply the changes?")) return;
+        missionsWarnedFor = completeSave;
+    }
+    const gs = gameState();
+    const rows = missionDraft.rows;
+    const byId = {};
+    rows.forEach(r => { byId[r.id] = r; });
+    const act2Changed = rows.some(r => r.act === 2 && missionRowDirty(r));
+
+    // Completed list: keep the order of what stays done, then add the new ones in mission order
+    const oldCompleted = gs.CompletedDestinationIds || [];
+    const kept = oldCompleted.filter(id => !byId[id] || byId[id].done);
+    const added = rows.filter(r => r.done && !oldCompleted.includes(r.id)).map(r => r.id);
+    const newCompleted = kept.concat(added);
+    const removed = oldCompleted.filter(id => byId[id] && !byId[id].done);
+    gs.CompletedDestinationIds = newCompleted;
+
+    // Open on the map: events and anything the editor doesn't know stay where they are
+    const oldActive = gs.ActiveDestinationIds || [];
+    const stillOpen = oldActive.filter(id => !byId[id] || (byId[id].open && !byId[id].done));
+    const newlyOpen = rows.filter(r => r.open && !r.done && !stillOpen.includes(r.id)).map(r => r.id);
+    gs.ActiveDestinationIds = stillOpen.concat(newlyOpen);
+
+    // The campaign log: add a dated entry for each new one, drop the entries of missions no longer done
+    const date = todayAsGameDate();
+    const log = (gs.CampaignLogEntries || []).filter(e => !(e.EntryType === 0 && removed.includes(e.EntryId)));
+    added.forEach(id => {
+        if (!log.some(e => e.EntryId === id)) log.push({ EntryId: id, EntryType: 0, DateCompleted: date });
+    });
+    gs.CampaignLogEntries = log;
+
+    // The results in the Act 1 and Act 2 blackboards
+    const missing = [];
+    rows.forEach(r => {
+        if (r.custom || !r.key) return;
+        if (r.act === 2) {
+            // Only WIN has been seen in Act 2, and the word for "not played" isn't known:
+            // a mission that is un-done keeps what it has; one that is done gets WIN if it has nothing
+            if (!r.done || (r.hasResult && r.result && r.result !== "UNPLAYED")) return;
+            if (!writeBlackboardValue(act2Blackboard(), "SerializedBlackboard", r.key, "WIN", false)) missing.push(r.key);
+            return;
+        }
+        const value = r.done ? (r.result && r.result !== "UNPLAYED" ? r.result : "WIN") : "UNPLAYED";
+        if (!writeBlackboardValue(act1Blackboard(), "SerializedBlackboard", r.key, value, false)) {
+            if (r.done || r.hasResult) missing.push(r.key);
+        }
+    });
+
+    // Act 1 map: where it thinks you are is the last mission finished. (Act 2's map keeps the hub there.)
+    const last = newCompleted.length ? newCompleted[newCompleted.length - 1] : null;
+    const map = findEntity(e => e.Name === "WorldMapDT");
+    if (map && last) {
+        writeBlackboardValue(map, "SerializedDTC", "CurDestId", last, false);
+        writeBlackboardValue(map, "SerializedDTC", "Local Last Quest", last, false);
+    }
+
+    // Act 2: "Most Recent Quest" is the last Act 2 mission in the completed list
+    if (act2Changed) {
+        const lastAct2 = newCompleted.slice().reverse().find(id => /^ACT2_QUEST_\d+$/.test(id));
+        if (lastAct2) writeBlackboardValue(act2Blackboard(), "SerializedBlackboard", "Most Recent Quest", lastAct2, false);
+    }
+
+    // The progression number the game scales enemies and loot with: 18 + 2 per mission done
+    const progression = 18 + 2 * newCompleted.length;
+    const setProgression = missionsSetsProgression();
+    const wrote = setProgression &&
+                  writeBlackboardValue(getBlackboard(), "SerializedBlackboard", "CampaignProgression", progression, true);
+
+    missionDraft = null;
+    buildMissionsGUI();
+    let text = "Applied. Missions done: " + newCompleted.length + ". Open on the map: " +
+               gs.ActiveDestinationIds.filter(id => byId[id]).length + ".";
+    if (!setProgression) text += " Campaign progression was left as it is.";
+    else if (wrote) text += " Campaign progression is now " + progression + ".";
+    else text += " This save has no campaign progression number, so none was set.";
+    if (act2Changed) text += " The Act 2 counters were left as they are.";
+    if (missing.length) text += " Couldn't find a result entry for: " + missing.join(", ") + ".";
+    missionsStatus(text);
+}
+
+
+/*____________________________ NEW GAME+ (EXPERIMENTAL) ____________________________
+    Starts the story again from Quest 1 and keeps what you earned. It works the other way round
+    from "Reset to default": that keeps the story and resets the gear; this keeps the gear
+    and resets the story.
+
+    The story state (missions, events, quest results, story choices, the map, the shop, difficulty,
+    the party name, tutorials) is not something that can be written from scratch: it differs between
+    Act 1 and Act 2 and between campaigns, and the Act 1 map is not even in an Act 2 save. So the editor
+    does not reset a save in place. It takes the save of a brand-new campaign made by the game itself
+    and moves the things below into it. The save that is open is never changed.
+
+    Moved from the open save into the new campaign's save:
+    - GameState: Gold, CraftingMaterials, ItemInventory, DiscoveredRecipes, SharedWeaponIds,
+      UnlockedSkills, RealCompletedFeats, CompletedFeats, PendingNewFeatIds, PendingNewFeatHashIds,
+      FeatProgresses, DiscoveredEnemyVulnerabilities (the same things "Reset to default" resets,
+      plus the enemy weaknesses)
+    - each hero: EquippedWeaponIndex, EquippedTrinketId, EquippedWeapons, DefaultWeaponsBuild
+      (both copies of AllPlayers), and VirtueOneValue / VirtueTwoValue unless the one tick box
+      resets the virtues of all heroes
+    Everything else is the new campaign's, including Legends and companions (they come from the
+    Act 2 story), PartyXP and the feat rerolls.
+    If the new campaign doesn't own Act 2, Act 2 items, skills, feats and enemies are left out.
+*/
+
+const NGPLUS_STATE_KEYS = ["Gold", "CraftingMaterials", "ItemInventory", "DiscoveredRecipes", "SharedWeaponIds",
+    "UnlockedSkills", "RealCompletedFeats", "CompletedFeats", "PendingNewFeatIds", "PendingNewFeatHashIds",
+    "FeatProgresses", "DiscoveredEnemyVulnerabilities"];
+const NGPLUS_GEAR_KEYS = ["EquippedWeaponIndex", "EquippedTrinketId", "EquippedWeapons", "DefaultWeaponsBuild"];
+
+var ngPlus = { fresh: null, freshName: "", result: null, resultName: "" };
+
+function ownsAct2Save(save) {
+    const gsx = (save.GameSceneData && save.GameSceneData.GameState) || {};
+    return [].concat(save.ProductIDs || [], gsx.OwnedProductIDs || []).includes("PRODUCT_ACT_2");
+}
+
+const ACT2_WEAPON_IDS = sharedWeaponDefs.filter(d => ACT2_SHARED_WEAPONS.includes(d.key)).map(d => d.weaponId);
+
+function ngPlusIsAct2(id) {
+    const clean = String(id || "").trim();
+    return !!clean && (isAct2Item(clean) || ACT2_WEAPON_IDS.includes(clean));
+}
+
+// Does this hero's gear use anything that only exists with Act 2?
+function ngPlusGearUsesAct2(p) {
+    if (ngPlusIsAct2(p.EquippedTrinketId)) return true;
+    return [].concat(p.EquippedWeapons || [], p.DefaultWeaponsBuild || []).some(w =>
+        [w.Id, w.PartAId, w.PartBId, w.PartCId].some(ngPlusIsAct2));
+}
+
+// Checks a chosen save before it is used as the new campaign
+function ngPlusCheckFresh(fresh, loaded) {
+    const errors = [], warnings = [];
+    const gsx = fresh && fresh.GameSceneData && fresh.GameSceneData.GameState;
+    if (!gsx || !Array.isArray(fresh.AllPlayers || (gsx && gsx.AllPlayers))) {
+        errors.push("That file doesn't look like a Legends of the Dark save.");
+        return { errors, warnings };
+    }
+    if (fresh.SlotGUID && fresh.SlotGUID === loaded.SlotGUID) {
+        errors.push("That is the same campaign as the save you have open. Choose the save of a new campaign.");
+    }
+    if (fresh.Act) {
+        warnings.push("That is an Act 2 campaign. New Game+ is meant to start from a new Act 1 campaign.");
+    }
+    const done = (gsx.CompletedDestinationIds || []).length;
+    if (done > 0) {
+        warnings.push("That campaign already has " + done + (done === 1 ? " finished mission" : " finished missions") +
+                      ", so it doesn't look brand new.");
+    }
+    return { errors, warnings };
+}
+
+// Builds the New Game+ save. Returns { save, report } and never changes `loaded` or `fresh`.
+function buildNewGamePlus(fresh, loaded, opts) {
+    const clone = x => JSON.parse(JSON.stringify(x));
+    const out = clone(fresh);
+    const from = loaded.GameSceneData.GameState;
+    const to = out.GameSceneData.GameState;
+    const allowAct2 = ownsAct2Save(fresh);
+    const report = { counts: {}, leftOut: {}, notes: [] };
+    const leave = (what, n) => { if (n > 0) report.leftOut[what] = (report.leftOut[what] || 0) + n; };
+
+    // Lists of IDs or of objects with an ID: drop the Act 2 ones when the new campaign can't hold them
+    const carryList = (key, getId) => {
+        if (!Array.isArray(from[key])) return;
+        let list = clone(from[key]);
+        if (!allowAct2 && getId) {
+            const kept = list.filter(x => !ngPlusIsAct2(getId(x)));
+            leave(key, list.length - kept.length);
+            list = kept;
+        }
+        to[key] = list;
+        report.counts[key] = list.length;
+    };
+    carryList("ItemInventory", x => x.Id);
+    carryList("DiscoveredRecipes", x => x.Id);
+    carryList("CraftingMaterials", null);
+    carryList("SharedWeaponIds", x => x);
+    carryList("UnlockedSkills", x => x);
+    carryList("RealCompletedFeats", x => x);
+    carryList("CompletedFeats", x => (typeof x === "string" ? x : ""));
+    carryList("PendingNewFeatIds", x => (typeof x === "string" ? x : ""));
+    carryList("PendingNewFeatHashIds", null);
+    carryList("FeatProgresses", x => x.RealFeatId);
+    if (Array.isArray(from.DiscoveredEnemyVulnerabilities)) {
+        const hashes = knownEnemyHashes();
+        let list = clone(from.DiscoveredEnemyVulnerabilities);
+        if (!allowAct2) {
+            const kept = list.filter(v => { const e = hashes.get(v.EnemyIdHash); return !(e && e.act === 2); });
+            leave("DiscoveredEnemyVulnerabilities", list.length - kept.length);
+            list = kept;
+        }
+        to.DiscoveredEnemyVulnerabilities = list;
+        report.counts.DiscoveredEnemyVulnerabilities = list.length;
+    }
+    if (typeof from.Gold === "number") { to.Gold = from.Gold; report.counts.Gold = from.Gold; }
+
+    // Shop: it stays the new campaign's, but whatever is now owned comes off the shelves,
+    // so buying it can't make a duplicate (the same as "I want it all" does)
+    const known = new Set((to.DiscoveredRecipes || []).map(r => r.Id.trim()));
+    const ownedIds = new Set((to.ItemInventory || []).map(i => i.Id));
+    let shelved = 0;
+    (to.ShopData || []).forEach(entry => {
+        if (entry.qty <= 0) return;
+        const id = entry.id.trim();
+        if (id.startsWith("MAT_")) return;
+        const owned = id.startsWith("RECIPE_") ? known.has(id)
+            : ownedIds.has(id) || ownedIds.has(id + "_PLUS") || ownedIds.has(id + "_UPGRADED");
+        if (owned) { entry.qty = 0; shelved++; }
+    });
+    report.counts.shelved = shelved;
+
+    // Heroes: gear and virtues, in both copies of AllPlayers
+    const source = Array.isArray(loaded.AllPlayers) ? loaded.AllPlayers : (from.AllPlayers || []);
+    const heroNotes = {};
+    [out.AllPlayers, to.AllPlayers].forEach(list => {
+        if (!Array.isArray(list)) return;
+        list.forEach(p => {
+            const q = source.find(x => x.HeroId === p.HeroId);
+            if (!q) return;
+            if (opts.keepGear) {
+                if (!allowAct2 && ngPlusGearUsesAct2(q)) {
+                    const name = p.HeroId.replace("HERO_", "").charAt(0) + p.HeroId.replace("HERO_", "").slice(1).toLowerCase();
+                    heroNotes[p.HeroId] = "The new campaign doesn't own Act 2 and " + name +
+                        "'s gear uses Act 2 parts, so " + name + " keeps the new campaign's starting gear.";
+                } else {
+                    NGPLUS_GEAR_KEYS.forEach(k => { if (k in q) p[k] = clone(q[k]); });
+                }
+            }
+            if (!opts.resetVirtueOne && "VirtueOneValue" in q) p.VirtueOneValue = q.VirtueOneValue;
+            if (!opts.resetVirtueTwo && "VirtueTwoValue" in q) p.VirtueTwoValue = q.VirtueTwoValue;
+        });
+    });
+    report.notes = Object.keys(heroNotes).map(k => heroNotes[k]);
+    report.heroes = source.length;
+    return { save: out, report: report };
+}
+
+function ngPlusEl(id) { return document.getElementById(id); }
+
+function ngPlusSetStatus(text) { ngPlusEl("ngStatus").textContent = text; }
+
+function openNewGamePlus() {
+    if (!completeSave) { alert("Load a save file first."); return; }
+    ngPlus = { fresh: null, freshName: "", result: null, resultName: "" };
+    ngPlusEl("ngFresh").value = "";
+    ngPlusEl("ngFreshInfo").textContent = "";
+    ngPlusEl("ngReport").innerHTML = "";
+    ngPlusSetStatus("");
+    ngPlusRefreshButtons();
+    const dialog = ngPlusEl("ngPlusDialog");
+    if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+}
+
+function closeNewGamePlus() {
+    const dialog = ngPlusEl("ngPlusDialog");
+    if (typeof dialog.close === "function") dialog.close(); else dialog.removeAttribute("open");
+}
+
+function ngPlusRefreshButtons() {
+    ngPlusEl("ngBuild").disabled = !ngPlus.fresh;
+    ngPlusEl("ngDownload").disabled = !ngPlus.result;
+    ngPlusEl("ngOpen").disabled = !ngPlus.result;
+}
+
+// A different option or file means the built save is out of date
+function ngPlusInvalidate() {
+    if (!ngPlus.result) return;
+    ngPlus.result = null;
+    ngPlusEl("ngReport").innerHTML = "";
+    ngPlusSetStatus("Options changed. Press Build New Game+ again.");
+    ngPlusRefreshButtons();
+}
+
+function ngPlusChooseFresh() {
+    const input = ngPlusEl("ngFresh");
+    const file = input.files && input.files[0];
+    ngPlus.fresh = null;
+    ngPlus.result = null;
+    ngPlusEl("ngReport").innerHTML = "";
+    ngPlusSetStatus("");
+    if (!file) { ngPlusEl("ngFreshInfo").textContent = ""; ngPlusRefreshButtons(); return; }
+    const fr = new FileReader();
+    fr.onload = e => {
+        let parsed;
+        try { parsed = parseSaveText(e.target.result); }
+        catch (err) {
+            ngPlusEl("ngFreshInfo").textContent = "This file isn't a readable save: " + err.message;
+            ngPlusRefreshButtons();
+            return;
+        }
+        const check = ngPlusCheckFresh(parsed, completeSave);
+        const info = ngPlusEl("ngFreshInfo");
+        if (check.errors.length) {
+            info.textContent = check.errors.join(" ");
+        } else {
+            ngPlus.fresh = parsed;
+            ngPlus.freshName = file.name;
+            const gsx = parsed.GameSceneData.GameState;
+            info.textContent = "New campaign: " + (parsed.PartyName || "(no name)") + ", " +
+                (parsed.Act ? "Act 2" : "Act 1") + ", game version " + parsed.Version + ", " +
+                (ownsAct2Save(parsed) ? "owns Act 2." : "doesn't own Act 2.");
+            ngPlus.warnings = check.warnings;
+            if (check.warnings.length) info.textContent += " " + check.warnings.join(" ");
+            ngPlus.questStarted = !!gsx.QuestId;
+        }
+        ngPlusRefreshButtons();
+    };
+    fr.readAsText(file);
+}
+
+function ngPlusOptions() {
+    return {
+        keepGear: ngPlusEl("ngKeepGear").checked,
+        resetVirtueOne: ngPlusEl("ngResetVirtues").checked,
+        resetVirtueTwo: ngPlusEl("ngResetVirtues").checked
+    };
+}
+
+function ngPlusAddLine(text) {
+    const li = document.createElement("li");
+    li.textContent = text;
+    ngPlusEl("ngReport").appendChild(li);
+}
+
+function buildNewGamePlusFromDialog() {
+    if (!ngPlus.fresh || !completeSave) return;
+    if ((ngPlus.warnings || []).length &&
+        !confirm(ngPlus.warnings.join(" ") + "\n\nUse it anyway?")) return;
+    const opts = ngPlusOptions();
+    const built = buildNewGamePlus(ngPlus.fresh, completeSave, opts);
+    ngPlus.result = built.save;
+    ngPlus.resultName = nextSaveFileName(ngPlus.freshName);
+    const c = built.report.counts;
+    ngPlusEl("ngReport").innerHTML = "";
+    ngPlusAddLine("Items kept: " + (c.ItemInventory || 0) + ". Recipes kept: " + (c.DiscoveredRecipes || 0) + ".");
+    ngPlusAddLine("Materials kept: " + (c.CraftingMaterials || 0) + ". Gold kept: " + (c.Gold || 0) + ".");
+    ngPlusAddLine("Skills kept: " + (c.UnlockedSkills || 0) + ". Feats kept: " + (c.RealCompletedFeats || 0) + ".");
+    ngPlusAddLine("Enemies with known weaknesses kept: " + (c.DiscoveredEnemyVulnerabilities || 0) + ".");
+    ngPlusAddLine(opts.keepGear ? "Each hero's equipped weapons and trinket are kept."
+                                : "Each hero starts with the new campaign's weapons and trinket.");
+    ngPlusAddLine(opts.resetVirtueOne ? "The virtues of all heroes are reset to the new campaign's."
+                                      : "The virtues of all heroes are kept.");
+    if (c.shelved) ngPlusAddLine("Took " + c.shelved + " items and recipes you already have off the shop shelves.");
+    Object.keys(built.report.leftOut).forEach(k =>
+        ngPlusAddLine("Left out because the new campaign doesn't own Act 2: " + built.report.leftOut[k] + " from " + k + "."));
+    built.report.notes.forEach(ngPlusAddLine);
+    ngPlusSetStatus("Built. The file will be named " + ngPlus.resultName + ". Download it, or open it here to look it over.");
+    ngPlusRefreshButtons();
+}
+
+function downloadNewGamePlus() {
+    if (!ngPlus.result) return;
+    saveToFile(ngPlus.result, ngPlus.resultName);
+    ngPlusSetStatus("Downloaded " + ngPlus.resultName + ". Replace the new campaign's save with it: copy it into that slot's folder.");
+}
+
+// Open the result in the editor (the save that was open is replaced by it)
+function openNewGamePlusHere() {
+    if (!ngPlus.result) return;
+    if (!confirm("Open the New Game+ save in the editor? The save that is open now will be replaced here (the file itself isn't changed).")) return;
+    adoptSave(ngPlus.result, ngPlus.resultName);
+    closeNewGamePlus();
+}
+
+
+/*____________________________ EVENTS (EXPERIMENTAL) ____________________________
+    Narrative events and city events, on the Missions tab. Worked out from the saves, never tried
+    in the game, and the evidence is thinner than for missions: no save has an event being played, only
+    snapshots of events pending and of events done.
+
+    - A pending narrative event (E2B_BURIED ...) is in GameState.ActiveDestinationIds, next to the missions.
+      A done one is in CompletedNarrativeEventIds and has a CampaignLogEntries entry with EntryType 1.
+    - A pending city event (CITY_EVENT_0 ...) is in ActiveCityEvents as { ModelId, Position: {x, y} }.
+      A done one is in CompletedCityEventIds with a log entry of EntryType 2.
+    - Events don't count toward CampaignProgression.
+    A city event can be marked done or taken off the town, but not put back: where it was placed is
+    only known while it is pending. Nothing here touches the story choices events write into the blackboards.
+*/
+
+// The narrative events seen in the one finished campaign, in the order they were played
+const EVENT_CATALOG_ACT1 = ["E2B_BURIED", "E3B_THIEF", "E4A_HUNTING", "E4B_CARTHRIDGE", "EC1_ORCS", "E5B_PRICE",
+    "EC3_SCOOBY", "E7A_TEACHER", "E8A_RUNESTONE", "E6A_REST", "EC4_MIRROR", "E9C_HORDES", "EC2_CRIME",
+    "E13A_WORD", "E12A_EYRIE", "E11A_GUILD"];
+const EVENT_CATALOG_ACT2 = ["A2SE17_BOAR_TAMALIR", "A2SE17A_BOAR_TAMALIR", "A2SE14_HAUNTED_WOODS",
+    "S2SE10_AFTER_THE_FLAMES", "A2SE15_HAUNTED_SMITHY", "A2SE02_JUST_US", "A2SE18_IRONMONGER", "A2SE19_MURDER_ROAD",
+    "A2SE23_TRAINING_DAY", "A2SE05_NEW_FIELD_OF_STUDY", "A2SE16_SPIRITS_EVENTIDE", "A2SE21_HYDRA_SHARD",
+    "A2SE11_ANOTHER_ROUND", "SS07_DEATH_AND_BETRAYAL", "A2SE03_WAKING_WORLD", "A2SE12_MY_SHADOW",
+    "A2SE06_UNRAVELING", "A2SE20_BURNING_HAND", "A2SE04_COULD_BE_HEROES"];
+
+var eventDraft = null;   // { save, rows }
+
+// An ID in the open list that looks like a narrative event rather than a mission
+function looksLikeNarrativeEvent(id) {
+    return /^(E\d+[A-Z]?_|EC\d+_|A2SE|S2SE|SS\d+_)/.test(id);
+}
+
+// "E2B_BURIED" -> "Buried", "A2SE17_BOAR_TAMALIR" -> "Boar Tamalir", "CITY_EVENT_4" -> "City event 4"
+function eventLabel(id) {
+    let m = /^CITY_EVENT_(\d+)$/.exec(id);
+    if (m) return "City event " + m[1];
+    const tokens = id.split("_");
+    if (tokens.length > 1 && /^(E\d+[A-Z]?|EC\d+|A2SE\d+A?|S2SE\d+|SS\d+|A2)$/.test(tokens[0])) tokens.shift();
+    return tokens.map(t => t.charAt(0) + t.slice(1).toLowerCase()).join(" ");
+}
+
+function buildEventRows() {
+    const gs = gameState();
+    const doneN = new Set(gs.CompletedNarrativeEventIds || []);
+    const doneC = new Set(gs.CompletedCityEventIds || []);
+    const active = gs.ActiveDestinationIds || [];
+    const activeC = gs.ActiveCityEvents || [];
+    const kinds = new Map();
+    EVENT_CATALOG_ACT1.forEach(id => kinds.set(id, "narrative"));
+    if (showAct2Missions()) EVENT_CATALOG_ACT2.forEach(id => kinds.set(id, "narrative"));
+    doneN.forEach(id => kinds.set(id, "narrative"));
+    active.forEach(id => { if (!MISSION_BY_ID[id] && looksLikeNarrativeEvent(id)) kinds.set(id, "narrative"); });
+    doneC.forEach(id => kinds.set(id, "city"));
+    activeC.forEach(e => kinds.set(e.ModelId, "city"));
+    const rows = [];
+    kinds.forEach((kind, id) => {
+        const city = kind === "city";
+        const placed = city ? activeC.find(e => e.ModelId === id) : null;
+        rows.push({
+            id: id, kind: kind, label: eventLabel(id),
+            done: city ? doneC.has(id) : doneN.has(id),
+            pending: city ? !!placed : active.includes(id),
+            canPend: !city || !!placed
+        });
+    });
+    // narrative first (in catalog order), then city events
+    rows.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "narrative" ? -1 : 1));
+    rows.forEach(r => { r.initial = JSON.stringify([r.done, r.pending]); });
+    return rows;
+}
+
+function eventRowDirty(r) { return JSON.stringify([r.done, r.pending]) !== r.initial; }
+
+function eventsDirty() {
+    return !!(eventDraft && eventDraft.save === completeSave && eventDraft.rows.some(eventRowDirty));
+}
+
+function updateEventRow(r, tr) {
+    const done = tr.querySelector(".event-done");
+    const pend = tr.querySelector(".event-pending");
+    done.checked = r.done;
+    pend.checked = r.pending && !r.done;
+    pend.disabled = r.done || !r.canPend;
+    pend.title = r.kind === "city" && !r.canPend ? "Where a city event stands in town is only known while it is pending" : "";
+    tr.classList.toggle("mission-changed", eventRowDirty(r));
+}
+
+function refreshEventNote() {
+    const dirty = document.getElementById("eventsDirty");
+    if (!dirty || !eventDraft) return;
+    dirty.textContent = eventsDirty() ? "You have event changes that aren't applied yet. Press Apply event changes." : "";
+    document.getElementById("eventsApply").disabled = !eventsDirty();
+    document.getElementById("eventsRevert").disabled = !eventsDirty();
+}
+
+function buildEventsGUI() {
+    const table = document.getElementById("eventsTable");
+    if (!table || !completeSave) return;
+    if (!eventDraft || eventDraft.save !== completeSave) eventDraft = { save: completeSave, rows: buildEventRows() };
+    [...table.querySelectorAll("tr")].slice(1).forEach(tr => tr.remove());
+    eventDraft.rows.forEach(r => {
+        const tr = document.createElement("tr");
+        const c0 = tr.insertCell();
+        const wrap = document.createElement("span");
+        wrap.className = "item-label";
+        const text = document.createElement("span");
+        text.className = "item-label-text";
+        const name = document.createElement("span");
+        name.className = "item-name";
+        name.textContent = r.label;
+        const id = document.createElement("span");
+        id.className = "item-id-label";
+        id.textContent = r.id;
+        text.appendChild(name); text.appendChild(id); wrap.appendChild(text);
+        c0.appendChild(wrap);
+        tr.insertCell().textContent = r.kind === "city" ? "City" : "Narrative";
+
+        const done = document.createElement("input");
+        done.type = "checkbox";
+        done.className = "event-done";
+        done.setAttribute("aria-label", r.label + " event done");
+        done.onchange = () => {
+            r.done = done.checked;
+            if (r.done) r.pending = false;
+            updateEventRow(r, tr);
+            refreshEventNote();
+        };
+        tr.insertCell().appendChild(done);
+
+        const pend = document.createElement("input");
+        pend.type = "checkbox";
+        pend.className = "event-pending";
+        pend.setAttribute("aria-label", r.label + " event pending");
+        pend.onchange = () => { r.pending = pend.checked; updateEventRow(r, tr); refreshEventNote(); };
+        tr.insertCell().appendChild(pend);
+
+        table.appendChild(tr);
+        updateEventRow(r, tr);
+    });
+    refreshEventNote();
+}
+
+function eventsStatus(text) {
+    document.getElementById("eventsStatus").textContent = text;
+}
+
+function eventsRevert() {
+    if (!eventDraft) return;
+    eventDraft = null;
+    buildEventsGUI();
+    eventsStatus("Changes discarded.");
+}
+
+function applyEvents() {
+    if (!completeSave || !eventDraft) return;
+    if (!eventsDirty()) { eventsStatus("Nothing to apply."); return; }
+    if (missionsWarnedFor !== completeSave) {
+        if (!confirm("Changing missions can cause unknown progression problems. " +
+                     "It is meant for replaying missions after an act is complete.\n\nApply the changes?")) return;
+        missionsWarnedFor = completeSave;
+    }
+    const gs = gameState();
+    const rows = eventDraft.rows;
+    const narrative = rows.filter(r => r.kind === "narrative");
+    const city = rows.filter(r => r.kind === "city");
+    const byId = {};
+    narrative.forEach(r => { byId[r.id] = r; });
+    const date = todayAsGameDate();
+    let log = (gs.CampaignLogEntries || []).slice();
+
+    // Narrative events: the completed list, the open list and the log
+    const oldDone = gs.CompletedNarrativeEventIds || [];
+    const newDone = oldDone.filter(id => !byId[id] || byId[id].done)
+        .concat(narrative.filter(r => r.done && !oldDone.includes(r.id)).map(r => r.id));
+    gs.CompletedNarrativeEventIds = newDone;
+    const oldActive = gs.ActiveDestinationIds || [];
+    const keptActive = oldActive.filter(id => !byId[id] || (byId[id].pending && !byId[id].done));
+    const newActive = narrative.filter(r => r.pending && !r.done && !keptActive.includes(r.id)).map(r => r.id);
+    gs.ActiveDestinationIds = keptActive.concat(newActive);
+    narrative.forEach(r => {
+        const wasDone = oldDone.includes(r.id);
+        if (r.done && !wasDone && !log.some(e => e.EntryId === r.id)) log.push({ EntryId: r.id, EntryType: 1, DateCompleted: date });
+        if (!r.done && wasDone) log = log.filter(e => !(e.EntryId === r.id && e.EntryType === 1));
+    });
+
+    // City events: done ones are taken off the town; a pending one that is unticked is taken off too
+    const cityById = {};
+    city.forEach(r => { cityById[r.id] = r; });
+    const oldDoneC = gs.CompletedCityEventIds || [];
+    gs.CompletedCityEventIds = oldDoneC.filter(id => !cityById[id] || cityById[id].done)
+        .concat(city.filter(r => r.done && !oldDoneC.includes(r.id)).map(r => r.id));
+    if (Array.isArray(gs.ActiveCityEvents)) {
+        gs.ActiveCityEvents = gs.ActiveCityEvents.filter(e => !cityById[e.ModelId] ||
+            (cityById[e.ModelId].pending && !cityById[e.ModelId].done));
+    }
+    city.forEach(r => {
+        const wasDone = oldDoneC.includes(r.id);
+        if (r.done && !wasDone && !log.some(e => e.EntryId === r.id)) log.push({ EntryId: r.id, EntryType: 2, DateCompleted: date });
+        if (!r.done && wasDone) log = log.filter(e => !(e.EntryId === r.id && e.EntryType === 2));
+    });
+    gs.CampaignLogEntries = log;
+
+    eventDraft = null;
+    buildEventsGUI();
+    eventsStatus("Applied. Narrative events done: " + gs.CompletedNarrativeEventIds.length + ". Open on the map: " +
+                 gs.ActiveDestinationIds.filter(id => !MISSION_BY_ID[id] && looksLikeNarrativeEvent(id)).length +
+                 ". City events done: " + gs.CompletedCityEventIds.length + ".");
 }

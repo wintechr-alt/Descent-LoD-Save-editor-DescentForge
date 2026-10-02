@@ -180,6 +180,17 @@ const allHeroesData = {
     },
 
 
+    "MISSIONS": {
+        name:{
+            ita:"Missioni",
+            spa:"Misiones",
+            fra:"Missions",
+            eng:"Missions"
+        },
+        GUI_divId: "missionsData",
+    },
+
+
     [BRYNN_ID]: {
         name:{
             ita:"Brynn",

@@ -576,3 +576,124 @@ body:not(.has-save) #saveData,
 body:not(.has-save) #saveRow{
 	display: none;
 }
+
+
+/* Missions tab (experimental) */
+#missionsData{
+	margin-top: 10px;
+	margin-bottom: 10px;
+	display: none;
+	flex-flow: column;
+	align-items: flex-start;
+}
+
+#missionsData > .table-container{
+	margin: 0 0 6px 20px;
+	align-self: flex-start;
+}
+
+.exp-badge{
+	display: inline-block;
+	margin-left: 8px;
+	padding: 1px 8px;
+	border: 1px solid #d9822b;
+	border-radius: 10px;
+	color: #f0b36e;
+	font-size: 13px;
+	font-weight: normal;
+	vertical-align: middle;
+}
+
+.mission-dirty{
+	color: #f0b36e;
+}
+
+#missionsTable td{
+	padding: 4px 12px;
+	vertical-align: middle;
+}
+
+#missionsTable tr.mission-changed td{
+	background-color: rgba(217, 130, 43, 0.12);
+}
+
+#missionsTable .mission-result{
+	min-width: 130px;
+}
+
+
+/* The warning at the top of the Missions tab: big on purpose */
+.mission-warning{
+	margin: 0 0 14px 20px;
+	padding: 16px 22px;
+	max-width: 900px;
+	border: 4px solid #d9302b;
+	border-radius: 6px;
+	background-color: rgba(217, 48, 43, 0.14);
+	align-self: flex-start;
+}
+
+.mission-warning h2{
+	margin: 0 0 10px 0;
+	font-size: 28px;
+	color: #ff6b63;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.mission-warning p{
+	margin: 8px 0;
+	font-size: 18px;
+	line-height: 1.45;
+	font-weight: bold;
+}
+
+.mission-option{
+	display: block;
+	margin: 6px 0 10px 0;
+}
+
+.mission-result-fixed{
+	display: inline-block;
+	min-width: 130px;
+}
+
+
+/* New Game+ dialog */
+#ngPlusDialog{
+	width: min(780px, calc(100% - 32px));
+	max-height: calc(100% - 40px);
+	overflow-y: auto;
+	padding: 18px 26px 22px;
+	border: 3px solid #0a6fb0;
+	border-radius: 8px;
+	background-color: #2a2a2a;
+	color: #ccc;
+}
+
+#ngPlusDialog::backdrop{
+	background-color: rgba(0, 0, 0, 0.72);
+}
+
+#ngPlusDialog h2{
+	margin: 0 0 8px 0;
+}
+
+#ngPlusDialog .section-note{
+	max-width: none;
+}
+
+.ng-file{
+	display: block;
+	margin-top: 10px;
+	font-weight: bold;
+}
+
+.ng-options{
+	margin: 10px 0;
+	border: 1px solid #555;
+}
+
+.ng-options label{
+	display: block;
+}

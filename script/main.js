@@ -34,16 +34,22 @@ function loadFromFile(file) {
             alert("This file isn't a readable save: " + err.message);
             return;
         }
-        originalFileName = file.name;
-        act2Override = null;
-        // An Act 1 campaign starts with the Act 2 content hidden, unless the save already has some
-        // (an Act 1 campaign that owns Act 2 can hold Act 2 items); an Act 2 campaign shows it
-        act2Hidden = saveIsAct1() && act2ItemsInSave().length === 0;
-        showLoaded(file.name);
-        // Build the interface to modify the save file
-        buildCompleteGUI()
+        // Make it the save being edited and build the interface for it
+        adoptSave(completeSave, file.name);
     };
     fr.readAsText(file);
+}
+
+// Makes `save` the one being edited (a loaded file, or a New Game+ result opened in the editor)
+function adoptSave(save, fileName) {
+    completeSave = save;
+    originalFileName = fileName;
+    act2Override = null;
+    // An Act 1 campaign starts with the Act 2 content hidden, unless the save already has some
+    // (an Act 1 campaign that owns Act 2 can hold Act 2 items); an Act 2 campaign shows it
+    act2Hidden = saveIsAct1() && act2ItemsInSave().length === 0;
+    showLoaded(fileName);
+    buildCompleteGUI();
 }
 
 // The file box (the save file input): load what was chosen
@@ -88,16 +94,10 @@ function setupFileBox() {
     });
 }
 
-// Download the completeSave object into a json file
-function downloadUpdatedSaveFile(){
-    if (!completeSave) {
-        alert("Load a save file first.");
-        return;
-    }
-    // Named one second newer than the original, so the game loads it as the latest save
-    const filename = nextSaveFileName(originalFileName);
+// Download a save object as a .sav file
+function saveToFile(save, filename) {
     // Same layout as the game's own files
-    const jsonStr = serializeSave(completeSave);
+    const jsonStr = serializeSave(save);
 
     // Create a temporary link to download the file(it will not be visible) and auto-click on it
     let tempLink = document.createElement('a');
@@ -110,6 +110,25 @@ function downloadUpdatedSaveFile(){
     tempLink.click();
 
     document.body.removeChild(tempLink);
+}
+
+// Download the completeSave object into a json file
+function downloadUpdatedSaveFile(){
+    if (!completeSave) {
+        alert("Load a save file first.");
+        return;
+    }
+    // Mission changes that were ticked but never applied would be lost
+    if (typeof missionsDirty === "function" && missionsDirty() &&
+        !confirm("You have mission changes that haven't been applied. Get the save without them?")) {
+        return;
+    }
+    if (typeof eventsDirty === "function" && eventsDirty() &&
+        !confirm("You have event changes that haven't been applied. Get the save without them?")) {
+        return;
+    }
+    // Named one second newer than the original, so the game loads it as the latest save
+    saveToFile(completeSave, nextSaveFileName(originalFileName));
 }
 
 // Create the GUI to edit the save file
@@ -137,6 +156,10 @@ function buildCompleteGUI(){
 
     // Items from custom campaigns that fit no other table
     buildOtherItemsGUI();
+
+    // Missions and events (experimental)
+    buildMissionsGUI();
+    buildEventsGUI();
 
     // Filling the shop and recipe GUI
     buildShopGUI();
@@ -227,6 +250,7 @@ function switchGUI(event){
     let shopDiv = document.getElementById(allHeroesData.SHOP.GUI_divId)
     let shopItemsDiv = document.getElementById(allHeroesData.SHOP_ITEMS.GUI_divId)
     let enemiesDiv = document.getElementById(allHeroesData.ENEMIES.GUI_divId)
+    let missionsDiv = document.getElementById(allHeroesData.MISSIONS.GUI_divId)
     let brynnDiv = document.getElementById(allHeroesData.HERO_BRYNN.GUI_divId)
     let syrusDiv = document.getElementById(allHeroesData.HERO_SYRUS.GUI_divId)
     let galadenDiv = document.getElementById(allHeroesData.HERO_GALADEN.GUI_divId)
@@ -247,6 +271,7 @@ function switchGUI(event){
     shopDiv.style.display = "none";
     shopItemsDiv.style.display = "none";
     enemiesDiv.style.display = "none";
+    missionsDiv.style.display = "none";
     brynnDiv.style.display = "none";
     syrusDiv.style.display = "none";
     galadenDiv.style.display = "none";
@@ -277,6 +302,10 @@ function switchGUI(event){
             break;
         case "SHOP_ITEMS":
             targetDiv = shopItemsDiv
+            targetTitle = ""
+            break;
+        case "MISSIONS":
+            targetDiv = missionsDiv
             targetTitle = ""
             break;
         case BRYNN_ID:

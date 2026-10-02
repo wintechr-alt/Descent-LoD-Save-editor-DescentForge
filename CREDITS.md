@@ -32,7 +32,7 @@ their owners.
 ## Testing
 
 Save files for testing, including a finished campaign that had never been edited, and lots of
-feedback on how the editor should behave, came from: Wintech.
+feedback on how the editor should behave, came from: Wintechr.
 
 ## How this fork was made
 
