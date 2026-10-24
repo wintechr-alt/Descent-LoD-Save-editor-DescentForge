@@ -3352,7 +3352,7 @@ function loadoutDisplay(id) {
     if (id === "") return "(none)";
     if (id === "0" || id === "1") return "Weapon " + (parseInt(id) + 1);
     const n = itemName(id);
-    let name = n ? (n[language] || n.eng || id) : id;
+    let name = n ? (pickName(n) || id) : id;
     if (esMejoraLoadout(id) && !/plus|mejorado/i.test(name)) name += " Plus";
     return name;
 }
