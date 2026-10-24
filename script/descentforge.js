@@ -3282,27 +3282,12 @@ function buildLoadoutGUI() {
         const table = document.createElement("table");
 
         // Trinket
-        const trinketOpts = [""].concat(ownedTrinketIdsForLoadout());
-        const trinketSel = makeLoadoutSelect(trinketOpts, p.EquippedTrinketId || "", function (v) {
-            setHeroLoadoutField(heroId, pp => { pp.EquippedTrinketId = v; });
-            buildLoadoutGUI();
-        });
-        addLoadoutRow(table, "Trinket", trinketSel);
+        const trinketControl = loadoutArrowControl(heroId, "trinket", -1, p.EquippedTrinketId || "");
+        addLoadoutRow(table, "Trinket", parseControl(trinketControl));
 
         // Active weapon slot
-        const idxSel = document.createElement("select");
-        [0, 1].forEach(i => {
-            const opt = document.createElement("option");
-            opt.value = String(i);
-            opt.textContent = "Weapon " + (i + 1);
-            if (i === (p.EquippedWeaponIndex || 0)) opt.selected = true;
-            idxSel.appendChild(opt);
-        });
-        idxSel.onchange = function () {
-            setHeroLoadoutField(heroId, pp => { pp.EquippedWeaponIndex = parseInt(idxSel.value) || 0; });
-            buildLoadoutGUI();
-        };
-        addLoadoutRow(table, "Active weapon slot", idxSel);
+        const indexControl = loadoutArrowControl(heroId, "index", -1, String(p.EquippedWeaponIndex || 0));
+        addLoadoutRow(table, "Active weapon slot", parseControl(indexControl));
 
         // Weapon slots
         for (let slotIndex = 0; slotIndex < 2; slotIndex++) {
@@ -3314,39 +3299,13 @@ function buildLoadoutGUI() {
             slotTitle.appendChild(slotCell);
             table.appendChild(slotTitle);
 
-            // Part A
-            const aOpts = ownedPartAIdsForLoadout(heroId);
-            const aSel = makeLoadoutSelect(aOpts, w.PartAId, function (value) {
-                setHeroLoadoutField(heroId, pp => {
-                    const slot = pp.EquippedWeapons[slotIndex];
-                    const info = partInfo(value);
-                    slot.PartAId = value;
-                    const mapped = weaponIdForPartA(heroId, value);
-                    if (mapped) slot.Id = mapped;
-                });
-                buildLoadoutGUI();
-            });
-            addLoadoutRow(table, "Part A", aSel);
+            const aControl = loadoutArrowControl(heroId, "a", slotIndex, w.PartAId || "");
+            const bControl = loadoutArrowControl(heroId, "b", slotIndex, w.PartBId || "");
+            const cControl = loadoutArrowControl(heroId, "c", slotIndex, w.PartCId || "");
 
-            const currentAInfo = partInfo(w.PartAId);
-            const currentType = currentAInfo ? currentAInfo.type : null;
-
-            // Part B
-
-            const bOpts = partOptionsForSlot("B", currentType, w.PartBId);
-            const bSel = makeLoadoutSelect(bOpts, w.PartBId, function (value) {
-                setHeroLoadoutField(heroId, pp => { pp.EquippedWeapons[slotIndex].PartBId = value; });
-                buildLoadoutGUI();
-            });
-            addLoadoutRow(table, "Part B", bSel);
-
-            // Part C
-            const cOpts = partOptionsForSlot("C", currentType, w.PartCId);
-            const cSel = makeLoadoutSelect(cOpts, w.PartCId, function (value) {
-                setHeroLoadoutField(heroId, pp => { pp.EquippedWeapons[slotIndex].PartCId = value; });
-                buildLoadoutGUI();
-            });
-            addLoadoutRow(table, "Part C", cSel);
+            addLoadoutRow(table, "Part A", parseControl(aControl));
+            addLoadoutRow(table, "Part B", parseControl(bControl));
+            addLoadoutRow(table, "Part C", parseControl(cControl));
         }
 
         card.appendChild(table);
@@ -3354,7 +3313,89 @@ function buildLoadoutGUI() {
     });
 }
 
+function parseControl(html) {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = html;
+    return wrap.firstElementChild || wrap;
+}
+
+function loadoutImage(id) {
+    if (!id) return "";
+    if (/^WEAPON_PART_/i.test(id)) return "img/WEAPON/" + id + ".png";
+    if (/^TRINKET/i.test(id)) return "img/TRINKET/" + id + ".png";
+    return "";
+}
+
+function loadoutDisplay(id) {
+    if (id === "") return "(none)";
+    if (id === "0" || id === "1") return "Weapon " + (parseInt(id) + 1);
+    const n = itemName(id);
+    const name = n ? (n[language] || n.eng || id) : id;
+    return name;
+}
+
+function loadoutArrowControl(heroId, fieldKey, slotIndex, value) {
+    const img = loadoutImage(value);
+    const name = loadoutDisplay(value);
+    const idxArg = (slotIndex === null || slotIndex === undefined) ? -1 : slotIndex;
+    return `<div style="display:flex;align-items:center;gap:6px;border:1px solid #ccc;border-radius:6px;padding:4px">
+      <button type="button" class="blue-button" style="padding:2px 8px" onclick="loadoutArrow('${heroId}','${fieldKey}',${idxArg},-1)">◀</button>
+      <div style="flex:1;text-align:center">
+        ${img ? `<img src="${img}" alt="" style="max-height:42px;max-width:100%;display:block;margin:0 auto 2px" onerror="this.style.display='none'">` : ""}
+        <div style="font-size:12px">${esc(name)}</div>
+      </div>
+      <button type="button" class="blue-button" style="padding:2px 8px" onclick="loadoutArrow('${heroId}','${fieldKey}',${idxArg},1)">▶</button>
+    </div>`;
+}
+
+function loadoutArrow(heroId, fieldKey, slotIndex, delta) {
+    const p = findPlayerObject(heroId);
+    if (!p) return;
+    let opts = [];
+    let current = "";
+    if (fieldKey === "trinket") {
+        opts = [""].concat(ownedTrinketIdsForLoadout());
+        current = p.EquippedTrinketId || "";
+    } else if (fieldKey === "index") {
+        opts = ["0", "1"];
+        current = String(p.EquippedWeaponIndex || 0);
+    } else {
+        const w = p.EquippedWeapons[slotIndex] || {};
+        const slotLetter = fieldKey.toUpperCase();
+        current = w["Part" + slotLetter + "Id"] || "";
+        if (fieldKey === "a") opts = ownedPartAIdsForLoadout(heroId).concat();
+        else {
+            const info = partInfo(w.PartAId);
+            const type = info ? info.type : null;
+            opts = partOptionsForSlot(slotLetter, type, current);
+        }
+        if (opts.indexOf(current) < 0 && current) opts = [current].concat(opts);
+        if (!opts.length) opts = [""];
+    }
+    if (opts.indexOf(current) < 0 && current) opts.unshift(current);
+    if (!opts.length) opts = [""];
+    let idx = opts.indexOf(current);
+    if (idx < 0) idx = 0;
+    idx = (idx + delta + opts.length) % opts.length;
+    const newVal = opts[idx];
+    setHeroLoadoutField(heroId, pp => {
+        if (fieldKey === "trinket") pp.EquippedTrinketId = newVal;
+        else if (fieldKey === "index") pp.EquippedWeaponIndex = parseInt(newVal) || 0;
+        else {
+            const slot = pp.EquippedWeapons[slotIndex];
+            const key = "Part" + fieldKey.toUpperCase() + "Id";
+            slot[key] = newVal;
+            if (fieldKey === "a") {
+                const mapped = weaponIdForPartA(heroId, newVal);
+                if (mapped) slot.Id = mapped;
+            }
+        }
+    });
+    buildLoadoutGUI();
+}
+
 // Ensure loadout selects refresh when items are toggled elsewhere.
 function buildLoadoutGUIIfPresent() {
     if (document.getElementById("loadoutHeroCards")) buildLoadoutGUI();
 }
+function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
