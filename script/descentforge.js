@@ -3194,15 +3194,38 @@ function loadoutPartATypes(heroId) {
     return types;
 }
 
-function ownedPartAIdsForLoadout(heroId) {
-    const types = loadoutPartATypes(heroId);
+function defaultSlotClass(heroId, slotIndex) {
+    const gear = DEFAULT_HERO_GEAR[heroId];
+    const w = gear && Array.isArray(gear.EquippedWeapons) ? gear.EquippedWeapons[slotIndex] : null;
+    const info = w ? partInfo(w.PartAId) : null;
+    return info ? info.type : null;
+}
+
+function ownedPartAIdsForLoadout(heroId, slotIndex) {
+    let types;
+    if (slotIndex !== undefined && slotIndex !== null) {
+        const cls = defaultSlotClass(heroId, slotIndex);
+        types = new Set(cls ? [cls] : []);
+        // shared/runes may still be chosen in any slot
+        allSharedWeapons().forEach(d => { if (d && d.key) types.add(d.key); });
+        sharedWeaponDefs.forEach(d => { if (d && d.key) types.add(d.key); });
+    } else {
+        types = loadoutPartATypes(heroId);
+    }
     const ids = new Set();
     (gameState().ItemInventory || []).forEach(i => {
         const info = partInfo(i.Id);
         if (info && info.slot === "A" && types.has(info.type)) ids.add(i.Id);
     });
     const p = findPlayerObject(heroId);
-    (p && p.EquippedWeapons || []).forEach(w => { if (w.PartAId) ids.add(w.PartAId); });
+    if (p && Array.isArray(p.EquippedWeapons)) {
+        if (slotIndex !== undefined && slotIndex !== null) {
+            const w = p.EquippedWeapons[slotIndex];
+            if (w && w.PartAId) ids.add(w.PartAId);
+        } else {
+            p.EquippedWeapons.forEach(w => { if (w.PartAId) ids.add(w.PartAId); });
+        }
+    }
     return [...ids].sort();
 }
 
@@ -3340,7 +3363,7 @@ function loadoutArrowControl(heroId, fieldKey, slotIndex, value) {
     const idxArg = (slotIndex === null || slotIndex === undefined) ? -1 : slotIndex;
     let canMove = true;
     if (fieldKey === "trinket") canMove = ownedTrinketIdsForLoadout().length > 0;
-    else if (fieldKey === "a") canMove = ownedPartAIdsForLoadout(heroId).length > 1;
+    else if (fieldKey === "a") canMove = ownedPartAIdsForLoadout(heroId, slotIndex).length > 1;
     else if (fieldKey === "b" || fieldKey === "c") {
         const pp = findPlayerObject(heroId);
         const w = pp ? (pp.EquippedWeapons[slotIndex] || {}) : {};
@@ -3376,7 +3399,7 @@ function loadoutArrow(heroId, fieldKey, slotIndex, delta) {
         const w = p.EquippedWeapons[slotIndex] || {};
         const slotLetter = fieldKey.toUpperCase();
         current = w["Part" + slotLetter + "Id"] || "";
-        if (fieldKey === "a") opts = ownedPartAIdsForLoadout(heroId).concat();
+        if (fieldKey === "a") opts = ownedPartAIdsForLoadout(heroId, slotIndex).concat();
         else {
             const info = partInfo(w.PartAId);
             const type = info ? info.type : null;
