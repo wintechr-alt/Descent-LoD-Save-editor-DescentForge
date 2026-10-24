@@ -3319,10 +3319,13 @@ function parseControl(html) {
     return wrap.firstElementChild || wrap;
 }
 
+function esMejoraLoadout(id) { return /_UPGRADED$|_PLUS$/i.test(id || ""); }
+
 function loadoutImage(id) {
     if (!id) return "";
-    if (/^WEAPON_PART_/i.test(id)) return "img/WEAPON/" + id + ".png";
-    if (/^TRINKET/i.test(id)) return "img/TRINKET/" + id + ".png";
+    const base = (id || "").replace(/_UPGRADED$|_PLUS$/i, "");
+    if (/^WEAPON_PART_/i.test(base)) return "img/WEAPON/" + base + ".png";
+    if (/^TRINKET/i.test(base)) return "img/TRINKET/" + base + ".png";
     return "";
 }
 
@@ -3330,7 +3333,8 @@ function loadoutDisplay(id) {
     if (id === "") return "(none)";
     if (id === "0" || id === "1") return "Weapon " + (parseInt(id) + 1);
     const n = itemName(id);
-    const name = n ? (n[language] || n.eng || id) : id;
+    let name = n ? (n[language] || n.eng || id) : id;
+    if (esMejoraLoadout(id) && !/plus|mejorado/i.test(name)) name += " Plus";
     return name;
 }
 
@@ -3341,7 +3345,7 @@ function loadoutArrowControl(heroId, fieldKey, slotIndex, value) {
     return `<div style="display:flex;align-items:center;gap:6px;border:1px solid #ccc;border-radius:6px;padding:4px">
       <button type="button" class="blue-button" style="padding:2px 8px" onclick="loadoutArrow('${heroId}','${fieldKey}',${idxArg},-1)">◀</button>
       <div style="flex:1;text-align:center">
-        ${img ? `<img src="${img}" alt="" style="max-height:42px;max-width:100%;display:block;margin:0 auto 2px" onerror="this.style.display='none'">` : ""}
+        ${img ? `<div style="position:relative;display:inline-block"><img src="${img}" alt="" style="max-height:42px;max-width:100%;display:block;margin:0 auto 2px" onerror="this.style.display='none'">${esMejoraLoadout(value) ? '<span style="position:absolute;top:0;right:0;background:#d9a441;color:#000;font-size:10px;padding:1px 4px;border-radius:3px">+</span>' : ""}</div>` : ""}
         <div style="font-size:12px">${esc(name)}</div>
       </div>
       <button type="button" class="blue-button" style="padding:2px 8px" onclick="loadoutArrow('${heroId}','${fieldKey}',${idxArg},1)">▶</button>
