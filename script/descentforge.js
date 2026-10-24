@@ -3353,8 +3353,9 @@ function loadoutArrowControl(heroId, fieldKey, slotIndex, value) {
     return `<div style="display:flex;align-items:center;gap:6px;border:1px solid #ccc;border-radius:6px;padding:4px">
       <button type="button" class="blue-button" style="padding:2px 8px" onclick="loadoutArrow('${heroId}','${fieldKey}',${idxArg},-1)" ${disabled}>◀</button>
       <div style="flex:1;text-align:center">
-        ${img ? `<div style="position:relative;display:inline-block"><img src="${img}" alt="" style="max-height:42px;max-width:100%;display:block;margin:0 auto 2px" onerror="this.style.display='none'">${plusBadge}</div>` : ""}
-        <div style="font-size:12px">${esc(name)}</div>
+        ${img ? `<div style="position:relative;display:inline-block"><img src="${img}" alt="" style="max-height:64px;max-width:100%;display:block;margin:0 auto 4px" onerror="this.style.display='none'">${plusBadge}</div>` : ""}
+        <div style="font-size:15px;font-weight:600">${esc(name)}</div>
+        ${value ? `<div style="font-size:11px;opacity:.7">${esc(value)}</div>` : ""}
       </div>
       <button type="button" class="blue-button" style="padding:2px 8px" onclick="loadoutArrow('${heroId}','${fieldKey}',${idxArg},1)" ${disabled}>▶</button>
     </div>`;
