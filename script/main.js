@@ -44,7 +44,7 @@ function loadFromFile(file) {
 function adoptSave(save, fileName) {
     completeSave = save;
     originalFileName = fileName;
-    act2Override = null;
+    act2Override = false;    // unchecked by default
     // An Act 1 campaign starts with the Act 2 content hidden, unless the save already has some
     // (an Act 1 campaign that owns Act 2 can hold Act 2 items); an Act 2 campaign shows it
     act2Hidden = saveIsAct1() && act2ItemsInSave().length === 0;
