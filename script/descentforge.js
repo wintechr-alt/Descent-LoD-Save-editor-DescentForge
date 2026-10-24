@@ -3285,10 +3285,6 @@ function buildLoadoutGUI() {
         const trinketControl = loadoutArrowControl(heroId, "trinket", -1, p.EquippedTrinketId || "");
         addLoadoutRow(table, "Trinket", parseControl(trinketControl));
 
-        // Active weapon slot
-        const indexControl = loadoutArrowControl(heroId, "index", -1, String(p.EquippedWeaponIndex || 0));
-        addLoadoutRow(table, "Active weapon slot", parseControl(indexControl));
-
         // Weapon slots
         for (let slotIndex = 0; slotIndex < 2; slotIndex++) {
             const w = p.EquippedWeapons[slotIndex] || {};
