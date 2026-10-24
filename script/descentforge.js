@@ -3323,11 +3323,6 @@ function buildLoadoutGUI() {
                     slot.PartAId = value;
                     const mapped = weaponIdForPartA(heroId, value);
                     if (mapped) slot.Id = mapped;
-                    const type = info ? info.type : null;
-                    if (type) {
-                        slot.PartBId = "WEAPON_PART_B_" + type + "_0";
-                        slot.PartCId = "WEAPON_PART_C_" + type + "_0";
-                    }
                 });
                 buildLoadoutGUI();
             });
