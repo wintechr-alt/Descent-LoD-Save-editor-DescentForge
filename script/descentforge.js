@@ -3342,13 +3342,25 @@ function loadoutArrowControl(heroId, fieldKey, slotIndex, value) {
     const img = loadoutImage(value);
     const name = loadoutDisplay(value);
     const idxArg = (slotIndex === null || slotIndex === undefined) ? -1 : slotIndex;
+    let canMove = true;
+    if (fieldKey === "trinket") canMove = ownedTrinketIdsForLoadout().length > 0;
+    else if (fieldKey === "a") canMove = ownedPartAIdsForLoadout(heroId).length > 1;
+    else if (fieldKey === "b" || fieldKey === "c") {
+        const pp = findPlayerObject(heroId);
+        const w = pp ? (pp.EquippedWeapons[slotIndex] || {}) : {};
+        const info = partInfo(w.PartAId);
+        const type = info ? info.type : null;
+        canMove = partOptionsForSlot(fieldKey.toUpperCase(), type, value).length > 1;
+    }
+    const disabled = canMove ? "" : "disabled";
+    const plusBadge = esMejoraLoadout(value) ? '<span style="position:absolute;top:0;right:0;background:#d9a441;color:#000;font-size:10px;padding:1px 4px;border-radius:3px">+</span>' : "";
     return `<div style="display:flex;align-items:center;gap:6px;border:1px solid #ccc;border-radius:6px;padding:4px">
-      <button type="button" class="blue-button" style="padding:2px 8px" onclick="loadoutArrow('${heroId}','${fieldKey}',${idxArg},-1)">◀</button>
+      <button type="button" class="blue-button" style="padding:2px 8px" onclick="loadoutArrow('${heroId}','${fieldKey}',${idxArg},-1)" ${disabled}>◀</button>
       <div style="flex:1;text-align:center">
-        ${img ? `<div style="position:relative;display:inline-block"><img src="${img}" alt="" style="max-height:42px;max-width:100%;display:block;margin:0 auto 2px" onerror="this.style.display='none'">${esMejoraLoadout(value) ? '<span style="position:absolute;top:0;right:0;background:#d9a441;color:#000;font-size:10px;padding:1px 4px;border-radius:3px">+</span>' : ""}</div>` : ""}
+        ${img ? `<div style="position:relative;display:inline-block"><img src="${img}" alt="" style="max-height:42px;max-width:100%;display:block;margin:0 auto 2px" onerror="this.style.display='none'">${plusBadge}</div>` : ""}
         <div style="font-size:12px">${esc(name)}</div>
       </div>
-      <button type="button" class="blue-button" style="padding:2px 8px" onclick="loadoutArrow('${heroId}','${fieldKey}',${idxArg},1)">▶</button>
+      <button type="button" class="blue-button" style="padding:2px 8px" onclick="loadoutArrow('${heroId}','${fieldKey}',${idxArg},1)" ${disabled}>▶</button>
     </div>`;
 }
 
