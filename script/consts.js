@@ -179,6 +179,16 @@ const allHeroesData = {
         GUI_divId: "enemiesData",
     },
 
+    "LOADOUT": {
+        name:{
+            ita:"Equipaggiamento",
+            spa:"Equipo",
+            fra:"Équipement",
+            eng:"Loadout"
+        },
+        GUI_divId: "loadoutData",
+    },
+
 
     "MISSIONS": {
         name:{

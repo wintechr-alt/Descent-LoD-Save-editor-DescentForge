@@ -502,6 +502,7 @@ function itemToggle(event){
                 break;
         }
     }
+    if (!bulkRunning && typeof buildLoadoutGUI === "function") buildLoadoutGUI();
 }
 
 

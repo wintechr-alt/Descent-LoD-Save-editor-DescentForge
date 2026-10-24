@@ -189,6 +189,9 @@ function buildCompleteGUI(){
     buildFeatGUI(KEHLI_ID);
     buildFeatGUI(CHANCE_ID);
 
+    // Current loadout tab
+    if (typeof buildLoadoutGUI === "function") buildLoadoutGUI();
+
     // Mark Act 2 items and lock them if this campaign doesn't have Act 2 (runs last, after every table is built)
     applyActRules();
 }
@@ -250,6 +253,7 @@ function switchGUI(event){
     let shopDiv = document.getElementById(allHeroesData.SHOP.GUI_divId)
     let shopItemsDiv = document.getElementById(allHeroesData.SHOP_ITEMS.GUI_divId)
     let enemiesDiv = document.getElementById(allHeroesData.ENEMIES.GUI_divId)
+    let loadoutDiv = document.getElementById(allHeroesData.LOADOUT.GUI_divId)
     let missionsDiv = document.getElementById(allHeroesData.MISSIONS.GUI_divId)
     let brynnDiv = document.getElementById(allHeroesData.HERO_BRYNN.GUI_divId)
     let syrusDiv = document.getElementById(allHeroesData.HERO_SYRUS.GUI_divId)
@@ -271,6 +275,7 @@ function switchGUI(event){
     shopDiv.style.display = "none";
     shopItemsDiv.style.display = "none";
     enemiesDiv.style.display = "none";
+    loadoutDiv.style.display = "none";
     missionsDiv.style.display = "none";
     brynnDiv.style.display = "none";
     syrusDiv.style.display = "none";
@@ -298,6 +303,10 @@ function switchGUI(event){
             break;
         case "ENEMIES":
             targetDiv = enemiesDiv
+            targetTitle = ""
+            break;
+        case "LOADOUT":
+            targetDiv = loadoutDiv
             targetTitle = ""
             break;
         case "SHOP_ITEMS":
