@@ -3362,7 +3362,13 @@ function loadoutArrowControl(heroId, fieldKey, slotIndex, value) {
     const name = loadoutDisplay(value);
     const idxArg = (slotIndex === null || slotIndex === undefined) ? -1 : slotIndex;
     let canMove = true;
-    if (fieldKey === "trinket") canMove = ownedTrinketIdsForLoadout().length > 0;
+    if (fieldKey === "trinket") {
+        const usedByOthers = new Set();
+        allPartyCopies().forEach(players => (players || []).forEach(pp => {
+            if (pp.HeroId !== heroId && pp.EquippedTrinketId) usedByOthers.add(pp.EquippedTrinketId);
+        }));
+        canMove = ownedTrinketIdsForLoadout().filter(id => !usedByOthers.has(id) || id === (findPlayerObject(heroId).EquippedTrinketId || "")).length > 1;
+    }
     else if (fieldKey === "a") canMove = ownedPartAIdsForLoadout(heroId, slotIndex).length > 1;
     else if (fieldKey === "b" || fieldKey === "c") {
         const pp = findPlayerObject(heroId);
@@ -3390,7 +3396,11 @@ function loadoutArrow(heroId, fieldKey, slotIndex, delta) {
     let opts = [];
     let current = "";
     if (fieldKey === "trinket") {
-        opts = [""].concat(ownedTrinketIdsForLoadout());
+        const usedByOthers = new Set();
+        allPartyCopies().forEach(players => (players || []).forEach(pp => {
+            if (pp.HeroId !== heroId && pp.EquippedTrinketId) usedByOthers.add(pp.EquippedTrinketId);
+        }));
+        opts = [""].concat(ownedTrinketIdsForLoadout().filter(id => !usedByOthers.has(id) || id === (p.EquippedTrinketId || "")));
         current = p.EquippedTrinketId || "";
     } else if (fieldKey === "index") {
         opts = ["0", "1"];
