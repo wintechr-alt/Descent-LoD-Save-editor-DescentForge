@@ -1,6 +1,6 @@
 # Descent: Legends of the Dark save editor (DescentForge fork)
 
-https://wintechr-alt.github.io/Descent-LoD-Save-editor-DescentForge/
+https://wintechr-alt.github.io/Descent-LoD-Save-editor-DescentForge/sav_to_dmap.html
 
 <img width="3697" height="1774" alt="Screenshot1" src="https://github.com/user-attachments/assets/29b817be-e815-47de-befd-5529f0844a83" />
 
